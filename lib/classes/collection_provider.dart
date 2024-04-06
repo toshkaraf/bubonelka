@@ -14,7 +14,6 @@ class CollectionProvider {
   Map<String, List<PhraseCard>> totalCollection = {};
   Map<String, ThemeClass> mapOfThemes = {};
   List<String> _playlists = [];
-  List<String> _chosenThemes = [];
 
   Future<void> initializeCollectionProvider(String filePath) async {
     try {
@@ -53,11 +52,5 @@ class CollectionProvider {
 
   set playlists(List<String> playlists) {
     _playlists = playlists;
-  }
-
-  List<String> get chosenThemes => _chosenThemes;
-
-  set chosenThemes(List<String> playlists) {
-    _chosenThemes = chosenThemes;
   }
 }
