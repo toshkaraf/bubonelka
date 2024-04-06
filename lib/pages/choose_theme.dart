@@ -1,4 +1,5 @@
 import 'package:bubonelka/classes/collection_provider.dart';
+import 'package:bubonelka/rutes.dart';
 import 'package:flutter/material.dart';
 
 class ChooseThemePage extends StatefulWidget {
@@ -12,7 +13,7 @@ class _ChooseThemePageState extends State<ChooseThemePage> {
   TextEditingController _playlistNameController = TextEditingController();
   final List<String> listOfThemes =
       CollectionProvider.getInstance().getListOfThemesNames();
-  final Map<String, List<String>> chosenThemes = {};
+  List<String> chosenThemes = [];
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +33,7 @@ class _ChooseThemePageState extends State<ChooseThemePage> {
         itemCount: listOfThemes.length,
         itemBuilder: (context, index) {
           final themeName = listOfThemes[index];
-          final isChecked = chosenThemes.containsKey(themeName);
+          final isChecked = chosenThemes.contains(themeName);
 
           return CheckboxListTile(
             title: Text(themeName),
@@ -40,32 +41,39 @@ class _ChooseThemePageState extends State<ChooseThemePage> {
             onChanged: (value) {
               setState(() {
                 if (value!) {
-                  chosenThemes[themeName] = [];
+                  chosenThemes
+                      .add(themeName); // Добавляем themeName в chosenThemes
                 } else {
-                  chosenThemes.remove(themeName);
+                  chosenThemes
+                      .remove(themeName); // Удаляем themeName из chosenThemes
                 }
               });
             },
           );
         },
       ),
-      floatingActionButton: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          FloatingActionButton.extended(
-            onPressed: () => _showCreatePlaylistDialog(context),
-            label: Text('Создать плейлист'),
-            icon: Icon(Icons.playlist_add),
-          ),
-          SizedBox(height: 16),
-          FloatingActionButton.extended(
-            onPressed: () {
-              Navigator.pushNamed(context, 'learningPageRoute');
-            },
-            label: Text('Начать занятие'),
-            icon: Icon(Icons.play_arrow),
-          ),
-        ],
+      floatingActionButton: SingleChildScrollView(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            FloatingActionButton.extended(
+              onPressed: () => _showCreatePlaylistDialog(context),
+              label: Text('Создать плейлист'),
+              icon: Icon(Icons.playlist_add),
+              heroTag: 'create_playlist_hero',
+            ),
+            SizedBox(height: 16),
+            FloatingActionButton.extended(
+              onPressed: () {
+                CollectionProvider.getInstance().chosenThemes = chosenThemes;
+                Navigator.pushNamed(context, learningPageRoute);
+              },
+              label: Text('Начать занятие'),
+              icon: Icon(Icons.play_arrow),
+              heroTag: 'start_learning_hero',
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -88,8 +96,9 @@ class _ChooseThemePageState extends State<ChooseThemePage> {
             ElevatedButton(
               onPressed: () {
                 final playlistName = _playlistNameController.text;
+                _playlistNameController.clear();
                 if (playlistName.isNotEmpty) {
-                  chosenThemes[playlistName] = chosenThemes.keys.toList();
+                  CollectionProvider.getInstance().playlists = chosenThemes;
                   Navigator.pop(context);
                 }
               },
