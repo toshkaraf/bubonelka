@@ -1,6 +1,7 @@
 import 'package:bubonelka/classes/collection_provider.dart';
 import 'package:bubonelka/classes/phrase_card.dart';
 import 'package:bubonelka/const_parameters.dart';
+
 class CurrentPhrasesSet {
   Map<String, List<PhraseCard>> totalCollection;
   List<String> _chosenThemes = CollectionProvider.getInstance().chosenThemes;
@@ -9,7 +10,8 @@ class CurrentPhrasesSet {
   int themeCounter = 0;
   int phraseCardsCounter = -1;
 
-  CurrentPhrasesSet() : totalCollection = CollectionProvider.getInstance().getTotalCollection();
+  CurrentPhrasesSet()
+      : totalCollection = CollectionProvider.getInstance().getTotalCollection();
 
   List<String> get chosenThemes => _chosenThemes;
 
@@ -18,7 +20,7 @@ class CurrentPhrasesSet {
   }
 
   PhraseCard getNextPhraseCard() {
-    if (themeCounter < chosenThemes.length &&
+    if (themeCounter <= chosenThemes.length - 1 &&
         totalCollection[_chosenThemes[themeCounter]] != null) {
       if (phraseCardsCounter <
           totalCollection[_chosenThemes[themeCounter]]!.length - 1) {
@@ -28,7 +30,7 @@ class CurrentPhrasesSet {
         currentPhraseCard.printPhraseCard();
         print(chosenThemes[themeCounter]);
         return currentPhraseCard;
-      } else {
+      } else if (themeCounter != chosenThemes.length - 1) {
         themeCounter++;
         phraseCardsCounter = 0;
         currentPhraseCard =
@@ -36,11 +38,12 @@ class CurrentPhrasesSet {
         print(chosenThemes[themeCounter]);
         currentPhraseCard.printPhraseCard();
         return currentPhraseCard;
+      } else {
+        currentPhraseCard = emptyPhraseCard;
+        currentPhraseCard.printPhraseCard();
+        return currentPhraseCard;
       }
     } else {
-      // chosenThemes = [];
-      // themeCounter = 0;
-      // phraseCardsCounter = -1;
       currentPhraseCard = emptyPhraseCard;
       currentPhraseCard.printPhraseCard();
       return currentPhraseCard;
@@ -48,21 +51,27 @@ class CurrentPhrasesSet {
   }
 
   PhraseCard getPreviousPhraseCard() {
-    if (themeCounter > 0 &&
+    if (themeCounter >= 0 &&
         totalCollection[_chosenThemes[themeCounter]] != null) {
       if (phraseCardsCounter > 1) {
         phraseCardsCounter--;
         return totalCollection[_chosenThemes[themeCounter]]![
             phraseCardsCounter];
-      } else {
+      } else if (themeCounter != 0) {
         themeCounter--;
-        phraseCardsCounter = -1;
+        phraseCardsCounter =
+            totalCollection[_chosenThemes[themeCounter]]!.length - 1;
+        return totalCollection[_chosenThemes[themeCounter]]![
+            phraseCardsCounter];
+      } else {
+        themeCounter = 0;
+        phraseCardsCounter = 0;
         return totalCollection[_chosenThemes[themeCounter]]![
             phraseCardsCounter];
       }
     } else {
       themeCounter = 0;
-      phraseCardsCounter = -1;
+      phraseCardsCounter = 0;
       return totalCollection[_chosenThemes[themeCounter]]![phraseCardsCounter];
     }
   }

@@ -18,3 +18,8 @@ PhraseCard emptyPhraseCard = PhraseCard(
     themeNameTranslation: "Пустая карта",
     translationPhrase: List.filled(1, 'Фраз для изучения больше нет! Выбери новые темы.'),
     germanPhrase: List.filled(1, 'Es gibt keine Phrasen mehr zu lernen! Wählen Sie neue Themen.'));
+
+PhraseCard neutralPhraseCard = PhraseCard(
+    themeNameTranslation: "",
+    translationPhrase: List.filled(1, ''),
+    germanPhrase: List.filled(1, ''));

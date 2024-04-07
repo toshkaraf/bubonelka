@@ -12,7 +12,10 @@ class LearningPage extends StatefulWidget {
 class _LearningPageState extends State<LearningPage> {
   CurrentPhrasesSet currentPhrasesSet = CurrentPhrasesSet();
   bool isGerman = false;
-  PhraseCard _currentPhrase = emptyPhraseCard;
+  bool _isPaused = false;
+  bool isNextPressed = false;
+  bool isPrevieusPressed = false;
+  PhraseCard _currentPhrase = neutralPhraseCard;
   List<String> _currentTextOnScreen = [];
 
   late FlutterTts flutterTts;
@@ -22,6 +25,12 @@ class _LearningPageState extends State<LearningPage> {
     super.initState();
     flutterTts = FlutterTts();
     getNextPhraseCard();
+  }
+
+  @override
+  void dispose() {
+    flutterTts.pause();
+    super.dispose();
   }
 
   @override
@@ -76,10 +85,30 @@ class _LearningPageState extends State<LearningPage> {
               children: [
                 RoundedIconButton(
                     icon: Icons.skip_previous,
-                    onPressed: getPreviousPhraseCard),
-                RoundedIconButton(icon: Icons.play_arrow, onPressed: () {}),
+                    onPressed: () {
+                      isPrevieusPressed = true;
+                      flutterTts.pause();
+                      getPreviousPhraseCard();
+                    }),
                 RoundedIconButton(
-                    icon: Icons.skip_next, onPressed: getNextPhraseCard),
+                    icon: _isPaused ? Icons.play_arrow : Icons.pause,
+                    onPressed: () {
+                      setState(() {
+                        _isPaused = !_isPaused;
+                      }); // Переключаем состояние паузы/воспроизведения
+                      if (_isPaused) {
+                        flutterTts.pause();
+                      } else {
+                        _speakPhrases();
+                      }
+                    }),
+                RoundedIconButton(
+                    icon: Icons.skip_next,
+                    onPressed: () {
+                      isNextPressed = true;
+                      flutterTts.pause();
+                      getNextPhraseCard();
+                    }),
               ],
             ),
           ),
@@ -107,45 +136,69 @@ class _LearningPageState extends State<LearningPage> {
     await flutterTts.setLanguage('ru-RU');
     await flutterTts.setSpeechRate(0.5);
     await flutterTts.setPitch(1);
-    for (String phrase in _currentPhrase.translationPhrase) {
-      await flutterTts.speak(phrase);
-      await flutterTts.awaitSpeakCompletion(
-          true); // Дождаться окончания озвучивания текущей фразы
-    }
 
-    if (!mounted) return; // Проверка, существует ли виджет
     setState(() {
-      _currentTextOnScreen = _currentPhrase.germanPhrase;
+      _currentTextOnScreen = _currentPhrase.translationPhrase;
     });
 
-    await flutterTts.setLanguage('de-DE');
-    for (int i = 0; i < 2; i++) {
-      for (String phrase in _currentPhrase.germanPhrase) {
+    for (String phrase in _currentPhrase.translationPhrase) {
+      if (_isPaused
+          //  || isNextPressed || isPrevieusPressed
+          ) {
+        // setState(() {
+        //   _currentTextOnScreen = _currentPhrase.translationPhrase;
+        // });
+      } else
+      //  if (!isNextPressed || !isPrevieusPressed)
+      {
         await flutterTts.speak(phrase);
         await flutterTts.awaitSpeakCompletion(
             true); // Дождаться окончания озвучивания текущей фразы
       }
     }
 
-    if (_currentPhrase != emptyPhraseCard) {
-      getNextPhraseCard();
+    if (!_isPaused) {
+      setState(() {
+        _currentTextOnScreen = _currentPhrase.germanPhrase;
+      });
     }
+
+    await flutterTts.setLanguage('de-DE');
+    for (int i = 0; i < 3; i++) {
+      for (String phrase in _currentPhrase.germanPhrase) {
+        if (!_isPaused) {
+          // if (!isNextPressed || !isPrevieusPressed)
+          // setState(() {
+          //   _currentTextOnScreen = _currentPhrase.germanPhrase;
+          // });
+
+          await flutterTts.speak(phrase);
+          await flutterTts.awaitSpeakCompletion(true);
+        } // Дождаться окончания озвучивания текущей фразы
+      }
+    }
+
+    if (_currentPhrase != emptyPhraseCard && !_isPaused) {
+      if (!isNextPressed && !isPrevieusPressed) {
+        getNextPhraseCard();
+      }
+    }
+    isNextPressed = false;
+    isPrevieusPressed = false;
   }
 
   void getNextPhraseCard() {
-    _currentPhrase = currentPhrasesSet.getNextPhraseCard();
-    setState(() {
-      _currentTextOnScreen = _currentPhrase.translationPhrase;
-    });
-    _speakPhrases();
+    if (_currentPhrase != emptyPhraseCard) {
+      _currentPhrase = currentPhrasesSet.getNextPhraseCard();
+      _speakPhrases();
+    }
   }
 
   void getPreviousPhraseCard() {
-    _currentPhrase = currentPhrasesSet.getPreviousPhraseCard();
-    setState(() {
-      _currentTextOnScreen = _currentPhrase.translationPhrase;
-    });
-    _speakPhrases();
+    if (_currentPhrase != emptyPhraseCard) {
+      _currentPhrase = currentPhrasesSet.getPreviousPhraseCard();
+      _speakPhrases();
+    }
   }
 }
 
