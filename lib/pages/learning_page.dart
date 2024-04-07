@@ -13,6 +13,8 @@ class _LearningPageState extends State<LearningPage> {
   CurrentPhrasesSet currentPhrasesSet = CurrentPhrasesSet();
   bool isGerman = false;
   bool _isPaused = false;
+  double _speechRate = 0.5;
+  bool _isPauseButtonActive = false; // upper menu
   PhraseCard _currentPhrase = neutralPhraseCard;
   List<String> _currentTextOnScreen = [];
 
@@ -52,9 +54,21 @@ class _LearningPageState extends State<LearningPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
+              RoundedSwitch(
+                value: _isPauseButtonActive,
+                onChanged: (newValue) {
+                  setState(() {
+                    _isPauseButtonActive =
+                        !_isPauseButtonActive; // Устанавливаем новое значение паузы/воспроизведения
+                  });
+                },
+              ),
+              TransparentIconButton(
+                  icon: Icons.speed,
+                  onPressed: () {
+                    _showSpeedDialog(context);
+                  }),
               TransparentIconButton(icon: Icons.book, onPressed: () {}),
-              TransparentIconButton(icon: Icons.speed, onPressed: () {}),
-              TransparentIconButton(icon: Icons.pause, onPressed: () {}),
               TransparentIconButton(icon: Icons.star, onPressed: () {}),
             ],
           ),
@@ -131,7 +145,7 @@ class _LearningPageState extends State<LearningPage> {
 
   void _speakPhrases() async {
     await flutterTts.setLanguage('ru-RU');
-    await flutterTts.setSpeechRate(0.5);
+    await flutterTts.setSpeechRate(_speechRate);
     await flutterTts.setPitch(1);
 
     setState(() {
@@ -139,11 +153,15 @@ class _LearningPageState extends State<LearningPage> {
     });
 
     for (String phrase in _currentPhrase.translationPhrase) {
-      if (!_isPaused){
+      if (!_isPaused) {
         await flutterTts.speak(phrase);
         await flutterTts.awaitSpeakCompletion(
             true); // Дождаться окончания озвучивания текущей фразы
       }
+    }
+
+    if (_isPauseButtonActive) {
+      await Future.delayed(Duration(seconds: delayBeforGermanPhraseInSeconds));
     }
 
     if (!_isPaused) {
@@ -181,7 +199,81 @@ class _LearningPageState extends State<LearningPage> {
       _speakPhrases();
     }
   }
+
+  void _showSpeedDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return SpeedSliderDialog(
+          initialValue: _speechRate,
+          onChanged: (double value) {
+            setState(() {
+              _speechRate = value;
+            });
+          },
+        );
+      },
+    );
+  }
 }
+
+class SpeedSliderDialog extends StatefulWidget {
+  final double initialValue;
+  final ValueChanged<double>? onChanged;
+
+  SpeedSliderDialog({Key? key, required this.initialValue, this.onChanged})
+      : super(key: key);
+
+  @override
+  _SpeedSliderDialogState createState() => _SpeedSliderDialogState();
+}
+
+class _SpeedSliderDialogState extends State<SpeedSliderDialog> {
+  late double _tempSpeedRate;
+  final double minSpeed = 0.1; // Минимальное значение скорости
+  final double maxSpeed = 2.0; // Максимальное значение скорости
+
+  @override
+  void initState() {
+    super.initState();
+    _tempSpeedRate = widget.initialValue;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('Выберите скорость'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Slider(
+            value: (_tempSpeedRate - minSpeed) * 100 / (maxSpeed - minSpeed) * 2.5 + 50,
+            min: 50,
+            max: 200,
+            divisions: 15, // С учетом диапазона от 50% до 200%
+            label: '${(_tempSpeedRate * 100).round()}%',
+            onChanged: (double value) {
+              setState(() {
+                _tempSpeedRate = (value - 50) / 2.5 / 100 * (maxSpeed - minSpeed) + minSpeed;
+              });
+            },
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            // Закрываем диалоговое окно и передаем новое значение скорости в родительский виджет
+            widget.onChanged?.call(_tempSpeedRate.clamp(minSpeed, maxSpeed));
+            Navigator.of(context).pop();
+          },
+          child: Text('Закрыть'),
+        ),
+      ],
+    );
+  }
+}
+
 
 class TransparentIconButton extends StatelessWidget {
   final IconData icon;
@@ -200,6 +292,41 @@ class TransparentIconButton extends StatelessWidget {
       color: Colors.black,
       iconSize: 35,
       onPressed: onPressed,
+    );
+  }
+}
+
+// Виджет RoundedSwitch
+
+class RoundedSwitch extends StatelessWidget {
+  final bool value; // Значение переключателя
+  final ValueChanged<bool>? onChanged; // Обратный вызов при изменении состояния
+
+  const RoundedSwitch({
+    Key? key,
+    required this.value,
+    required this.onChanged,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.5),
+            spreadRadius: 2,
+            blurRadius: 5,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Switch(
+        value: value,
+        onChanged: onChanged,
+      ),
     );
   }
 }
