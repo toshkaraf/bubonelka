@@ -1,5 +1,4 @@
 import 'package:bubonelka/classes/collection_provider.dart';
-import 'package:bubonelka/pages/current_phrases_set.dart';
 import 'package:bubonelka/rutes.dart';
 import 'package:flutter/material.dart';
 
@@ -66,7 +65,7 @@ class _ChooseThemePageState extends State<ChooseThemePage> {
             SizedBox(height: 16),
             FloatingActionButton.extended(
               onPressed: () {
-                CurrentPhrasesSet.getInstance().chosenThemes = chosenThemes;
+                CollectionProvider.getInstance().chosenThemes = chosenThemes;
                 Navigator.pushNamed(context, learningPageRoute);
               },
               label: Text('Начать занятие'),

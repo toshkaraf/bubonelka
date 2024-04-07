@@ -85,14 +85,15 @@ class CsvDataManager {
 
   void _populatePhraseCardMap(List<List<dynamic>> csvData) {
     // ensure favorite folder as empty
-    Map<String, Set<PhraseCard>> phraseCardsMap = {
-      favoritePhrasesSet: {},
-    };
+    // Map<String, List<PhraseCard>> phraseCardsMap = {
+    //   favoritePhrasesSet: [],
+    // };
     CollectionProvider.getInstance().mapOfThemes.clear();
-    Map<String, List<PhraseCard>> totalCollection = {};
+    Map<String, List<PhraseCard>> totalCollection = {
+      favoritePhrasesSet: [],
+    };
     Map<String, ThemeClass> mapOfThemes = {};
-    List<String> translationPhrases = List.filled(3, '');
-    List<String> germanPhrases = List.filled(3, '');
+    String currentThemeName = '';
 
     for (var row in csvData) {
       // Check if the row has enough data to create a PhraseCard object
@@ -116,39 +117,42 @@ class CsvDataManager {
               numberOfRepetition: numberOfRepetition,
               timeOfLastRepetition: timeOfLastRepetition);
 
-          mapOfThemes[theme.themeNameTranslation] = theme;
-          totalCollection[theme.themeNameTranslation] = [];
+          currentThemeName = themeNameTranslation;
+          mapOfThemes[currentThemeName] = theme;
+          totalCollection[currentThemeName] = [];
         } else {
           // Parse CSV data and create PhraseCard objects
-          String themeNameTranslation =
-              row[0] != null && row[0].trim().isNotEmpty ? row[0] : '';
-          translationPhrases[0] =
-              row[1] != null && row[1].trim().isNotEmpty ? row[1] : '';
-          translationPhrases[1] =
-              row[2] != null && row[2].trim().isNotEmpty ? row[2] : '';
-          translationPhrases[2] =
-              row[3] != null && row[3].trim().isNotEmpty ? row[3] : '';
-          germanPhrases[0] =
-              row[4] != null && row[4].trim().isNotEmpty ? row[4] : '';
-          germanPhrases[1] =
-              row[5] != null && row[5].trim().isNotEmpty ? row[5] : '';
-          germanPhrases[2] =
-              row[6] != null && row[6].trim().isNotEmpty ? row[6] : '';
+          // String themeNameTranslation =
+          //     row[0] != null && row[0].trim().isNotEmpty ? row[0] : '';
+          List<String> translationPhrases = [
+            row[1] != null && row[1].trim().isNotEmpty ? row[1] : '',
+            row[2] != null && row[2].trim().isNotEmpty ? row[2] : '',
+            row[3] != null && row[3].trim().isNotEmpty ? row[3] : '',
+          ];
+          List<String> germanPhrases = [
+            row[4] != null && row[4].trim().isNotEmpty ? row[4] : '',
+            row[5] != null && row[5].trim().isNotEmpty ? row[5] : '',
+            row[6] != null && row[6].trim().isNotEmpty ? row[6] : '',
+          ];
 
           PhraseCard phraseCard = PhraseCard(
-              themeNameTranslation: themeNameTranslation,
+              themeNameTranslation: currentThemeName,
               translationPhrase: translationPhrases,
               germanPhrase: germanPhrases);
+
+
 
           // add dictionary names and sort PhraseCards to dictionaries
           // if (!phraseCardsMap.containsKey(themeNameTranslation)) {
           //   phraseCardsMap[themeNameTranslation] = {};
           // }
 
-          if (phraseCardsMap.containsKey(themeNameTranslation)) {
-            phraseCardsMap[themeNameTranslation]!.add(phraseCard);
+          if (totalCollection.containsKey(currentThemeName)) {
+            totalCollection[currentThemeName]!.add(phraseCard);
           } else {
-            phraseCardsMap[themeNameTranslation] = {phraseCard};
+            totalCollection[currentThemeName] = [
+              phraseCard
+            ]; // Создать новый список с PhraseCard и добавить его в totalCollection
           }
         }
       } else {
@@ -160,7 +164,8 @@ class CsvDataManager {
       CollectionProvider.getInstance().mapOfThemes.clear();
       isThisRestoreFromFile = false;
     }
-    CollectionProvider.getInstance().totalCollection = totalCollection;
+    CollectionProvider.getInstance().setTotalCollection(totalCollection);
+    CollectionProvider.getInstance().printCollection(totalCollection);
     CollectionProvider.getInstance().mapOfThemes = mapOfThemes;
   }
 

@@ -1,6 +1,29 @@
+import 'package:bubonelka/classes/phrase_card.dart';
+import 'package:bubonelka/const_parameters.dart';
+import 'package:bubonelka/pages/current_phrases_set.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 
-class LearningPage extends StatelessWidget {
+class LearningPage extends StatefulWidget {
+  @override
+  _LearningPageState createState() => _LearningPageState();
+}
+
+class _LearningPageState extends State<LearningPage> {
+  CurrentPhrasesSet currentPhrasesSet = CurrentPhrasesSet();
+  bool isGerman = false;
+  PhraseCard _currentPhrase = emptyPhraseCard;
+  List<String> _currentTextOnScreen = [];
+
+  late FlutterTts flutterTts;
+
+  @override
+  void initState() {
+    super.initState();
+    flutterTts = FlutterTts();
+    getNextPhraseCard();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -9,9 +32,9 @@ class LearningPage extends StatelessWidget {
         actions: [
           IconButton(
             icon: Icon(Icons.help_outline),
-            color: Colors.black, // Установите цвет иконки
+            color: Colors.black,
             onPressed: () {
-              // Добавьте действие для вызова справки
+              // Add help action
             },
           ),
         ],
@@ -28,6 +51,8 @@ class LearningPage extends StatelessWidget {
               TransparentIconButton(icon: Icons.star, onPressed: () {}),
             ],
           ),
+          SizedBox(height: 20),
+          _buildPhrases(),
           Spacer(),
           Container(
             padding: EdgeInsets.all(20),
@@ -49,15 +74,78 @@ class LearningPage extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                RoundedIconButton(icon: Icons.skip_previous, onPressed: () {}),
+                RoundedIconButton(
+                    icon: Icons.skip_previous,
+                    onPressed: getPreviousPhraseCard),
                 RoundedIconButton(icon: Icons.play_arrow, onPressed: () {}),
-                RoundedIconButton(icon: Icons.skip_next, onPressed: () {}),
+                RoundedIconButton(
+                    icon: Icons.skip_next, onPressed: getNextPhraseCard),
               ],
             ),
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildPhrases() {
+    return Column(
+      children: _currentTextOnScreen.map((phrase) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Text(
+            phrase,
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 20),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  void _speakPhrases() async {
+    await flutterTts.setLanguage('ru-RU');
+    await flutterTts.setSpeechRate(0.5);
+    await flutterTts.setPitch(1);
+    for (String phrase in _currentPhrase.translationPhrase) {
+      await flutterTts.speak(phrase);
+      await flutterTts.awaitSpeakCompletion(
+          true); // Дождаться окончания озвучивания текущей фразы
+    }
+
+    if (!mounted) return; // Проверка, существует ли виджет
+    setState(() {
+      _currentTextOnScreen = _currentPhrase.germanPhrase;
+    });
+
+    await flutterTts.setLanguage('de-DE');
+    for (int i = 0; i < 2; i++) {
+      for (String phrase in _currentPhrase.germanPhrase) {
+        await flutterTts.speak(phrase);
+        await flutterTts.awaitSpeakCompletion(
+            true); // Дождаться окончания озвучивания текущей фразы
+      }
+    }
+
+    if (_currentPhrase != emptyPhraseCard) {
+      getNextPhraseCard();
+    }
+  }
+
+  void getNextPhraseCard() {
+    _currentPhrase = currentPhrasesSet.getNextPhraseCard();
+    setState(() {
+      _currentTextOnScreen = _currentPhrase.translationPhrase;
+    });
+    _speakPhrases();
+  }
+
+  void getPreviousPhraseCard() {
+    _currentPhrase = currentPhrasesSet.getPreviousPhraseCard();
+    setState(() {
+      _currentTextOnScreen = _currentPhrase.translationPhrase;
+    });
+    _speakPhrases();
   }
 }
 
@@ -75,7 +163,7 @@ class TransparentIconButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return IconButton(
       icon: Icon(icon),
-      color: Colors.black, // Установите цвет иконки
+      color: Colors.black,
       iconSize: 35,
       onPressed: onPressed,
     );
@@ -93,7 +181,7 @@ class RoundedIconButton extends StatelessWidget {
   }) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -109,10 +197,9 @@ class RoundedIconButton extends StatelessWidget {
       ),
       child: IconButton(
         icon: Icon(icon),
-        color: Colors.black, // Установите цвет иконки
+        color: Colors.black,
         onPressed: onPressed,
       ),
     );
   }
 }
-

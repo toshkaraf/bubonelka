@@ -20,4 +20,10 @@ class PhraseCard {
   // Добавленные методы для доступа к полям извне класса
   String get themeNameTranslation => _themeNameTranslation;
   set themeNameTranslation(String value) => _themeNameTranslation = value;
+
+  void printPhraseCard() {
+  print('Theme Name Translation: ${themeNameTranslation}');
+  print('Translation Phrases: ${translationPhrase}');
+  print('German Phrases: ${germanPhrase}');
+}
 }

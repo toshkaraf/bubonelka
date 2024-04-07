@@ -13,11 +13,13 @@ class CollectionProvider {
 
   Map<String, List<PhraseCard>> totalCollection = {};
   Map<String, ThemeClass> mapOfThemes = {};
+  List<String> _chosenThemes = [];
   List<String> _playlists = [];
 
   Future<void> initializeCollectionProvider(String filePath) async {
     try {
       await CsvDataManager.getInstance().loadDataFromFile(filePath);
+      printCollection(totalCollection);
     } on Exception catch (e) {
       // Перехватываем исключение и пробрасываем его дальше
       throw Exception('Проброшено из вызывающего метода: $e');
@@ -26,8 +28,8 @@ class CollectionProvider {
     }
   }
 
-  void setTotalCollection(Map<String, List<PhraseCard>> collection) {
-    totalCollection = collection;
+  void setTotalCollection(Map<String, List<PhraseCard>> totalCollection) {
+    this.totalCollection = totalCollection;
   }
 
   Map<String, List<PhraseCard>> getTotalCollection() {
@@ -52,5 +54,21 @@ class CollectionProvider {
 
   set playlists(List<String> playlists) {
     _playlists = playlists;
+  }
+
+  List<String> get chosenThemes => _chosenThemes;
+
+  set chosenThemes(List<String> themes) {
+    _chosenThemes = themes;
+  }
+
+  void printCollection(Map<String, List<PhraseCard>> totalCollection) {
+    totalCollection.forEach((theme, phraseCards) {
+      print('Theme: $theme');
+      phraseCards.forEach((phraseCard) {
+        phraseCard.printPhraseCard();
+        print('---');
+      });
+    });
   }
 }
