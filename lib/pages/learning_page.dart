@@ -13,8 +13,6 @@ class _LearningPageState extends State<LearningPage> {
   CurrentPhrasesSet currentPhrasesSet = CurrentPhrasesSet();
   bool isGerman = false;
   bool _isPaused = false;
-  bool isNextPressed = false;
-  bool isPrevieusPressed = false;
   PhraseCard _currentPhrase = neutralPhraseCard;
   List<String> _currentTextOnScreen = [];
 
@@ -86,8 +84,7 @@ class _LearningPageState extends State<LearningPage> {
                 RoundedIconButton(
                     icon: Icons.skip_previous,
                     onPressed: () {
-                      isPrevieusPressed = true;
-                      flutterTts.pause();
+                      _isPaused = true;
                       getPreviousPhraseCard();
                     }),
                 RoundedIconButton(
@@ -105,8 +102,8 @@ class _LearningPageState extends State<LearningPage> {
                 RoundedIconButton(
                     icon: Icons.skip_next,
                     onPressed: () {
-                      isNextPressed = true;
-                      flutterTts.pause();
+                      _isPaused = true;
+                      _speakPhrases();
                       getNextPhraseCard();
                     }),
               ],
@@ -142,15 +139,7 @@ class _LearningPageState extends State<LearningPage> {
     });
 
     for (String phrase in _currentPhrase.translationPhrase) {
-      if (_isPaused
-          //  || isNextPressed || isPrevieusPressed
-          ) {
-        // setState(() {
-        //   _currentTextOnScreen = _currentPhrase.translationPhrase;
-        // });
-      } else
-      //  if (!isNextPressed || !isPrevieusPressed)
-      {
+      if (!_isPaused){
         await flutterTts.speak(phrase);
         await flutterTts.awaitSpeakCompletion(
             true); // Дождаться окончания озвучивания текущей фразы
@@ -167,11 +156,6 @@ class _LearningPageState extends State<LearningPage> {
     for (int i = 0; i < 3; i++) {
       for (String phrase in _currentPhrase.germanPhrase) {
         if (!_isPaused) {
-          // if (!isNextPressed || !isPrevieusPressed)
-          // setState(() {
-          //   _currentTextOnScreen = _currentPhrase.germanPhrase;
-          // });
-
           await flutterTts.speak(phrase);
           await flutterTts.awaitSpeakCompletion(true);
         } // Дождаться окончания озвучивания текущей фразы
@@ -179,17 +163,14 @@ class _LearningPageState extends State<LearningPage> {
     }
 
     if (_currentPhrase != emptyPhraseCard && !_isPaused) {
-      if (!isNextPressed && !isPrevieusPressed) {
-        getNextPhraseCard();
-      }
+      getNextPhraseCard();
     }
-    isNextPressed = false;
-    isPrevieusPressed = false;
   }
 
   void getNextPhraseCard() {
     if (_currentPhrase != emptyPhraseCard) {
       _currentPhrase = currentPhrasesSet.getNextPhraseCard();
+      // _isPaused = false;
       _speakPhrases();
     }
   }
