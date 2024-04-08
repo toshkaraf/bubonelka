@@ -137,7 +137,8 @@ class _EditPhraseCardPageState extends State<EditPhraseCardPage> {
                       isExpanded: true,
                       onChanged: (String? newValue) {
                         setState(() {
-                          widget.selectedTheme = newValue ?? favoritePhrasesSet;
+                          widget.selectedTheme = newValue ??
+                              ''; // Обновляем значение selectedTheme
                         });
                       },
                       items: collectionProvider

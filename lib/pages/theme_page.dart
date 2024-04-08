@@ -204,14 +204,10 @@ class _ThemePageState extends State<ThemePage> {
                 ),
               ),
             ).then((editedPhraseCard) {
-              if (!editedPhraseCard.isDeleted) {
-                // collectionProvider.addToMapOfAllDictionaries(editedPhraseCard);
-                setState(() {
-                  // psraseCardsList.add(editedPhraseCard);
-                  psraseCardsList = List<PhraseCard>.from(collectionProvider
-                      .getListOfPhrasesForTheme(widget.themeNameTranslation));
-                });
-              }
+              setState(() {
+                psraseCardsList = List<PhraseCard>.from(collectionProvider
+                    .getListOfPhrasesForTheme(widget.themeNameTranslation));
+              });
             });
           },
           child: Icon(Icons.add),

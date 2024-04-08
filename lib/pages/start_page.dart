@@ -1,6 +1,9 @@
+import 'package:bubonelka/pages/edit_phrasecard_page.dart';
 import 'package:bubonelka/rutes.dart';
 import 'package:bubonelka/widgets/rounded_button.dart';
 import 'package:flutter/material.dart';
+import 'package:bubonelka/classes/settings_and_state.dart';
+import 'package:bubonelka/const_parameters.dart';
 
 class StartPage extends StatelessWidget {
   @override
@@ -39,6 +42,27 @@ class StartPage extends StatelessWidget {
           ],
         ),
       ),
+      floatingActionButton: Visibility(
+        visible: true, // Call a function to determine visibility
+        child: FloatingActionButton.extended(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => EditPhraseCardPage(
+                  widgetName: createPhrasePageName,
+                  phraseCard: neutralPhraseCard,
+                  themeNameTranslation: SettingsAndState.getInstance().currentThemeName,
+                ),
+              ),
+            );
+          },
+          label: Text('Добавить фразу'),
+          icon: Icon(Icons.add),
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 }
+
