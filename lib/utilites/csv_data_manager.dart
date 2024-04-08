@@ -97,7 +97,7 @@ class CsvDataManager {
 
     for (var row in csvData) {
       // Check if the row has enough data to create a PhraseCard object
-      if (row.length >= 7) {
+      if (row.length >= 8) {
         if (row[0] == themeConst) {
           //create object Thema
           String themeNameTranslation =
@@ -134,11 +134,15 @@ class CsvDataManager {
             row[5] != null && row[5].trim().isNotEmpty ? row[5] : '',
             row[6] != null && row[6].trim().isNotEmpty ? row[6] : '',
           ];
+          bool isActive = row[7] != null && row[7].trim().isNotEmpty
+            ? bool.parse(row[7])
+            : true;
 
           PhraseCard phraseCard = PhraseCard(
               themeNameTranslation: currentThemeName,
               translationPhrase: translationPhrases,
-              germanPhrase: germanPhrases);
+              germanPhrase: germanPhrases,
+              isActive: isActive);
 
 
 

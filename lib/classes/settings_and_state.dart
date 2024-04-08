@@ -1,14 +1,22 @@
 class SettingsAndState {
-  // Статическое поле для хранения единственного экземпляра класса
   static final SettingsAndState _instance = SettingsAndState._internal();
+  String _currentDictionaryName = '';
+  List<String> _themeList = [];
 
-  // Пустая переменная themeList типа List<String>
-  List<String> themeList = [];
-
-  // Приватный конструктор
   SettingsAndState._internal();
 
-  // Статический метод для получения экземпляра класса
+  String get currentThemeName => _currentDictionaryName;
+
+  set currentThemeName(String currentThemeName) {
+    _currentDictionaryName = currentThemeName;
+  }
+
+  List<String> get themeList => _themeList;
+
+  set themeList(List<String> themeList) {
+    _themeList = themeList;
+  }
+
   static SettingsAndState getInstance() {
     return _instance;
   }

@@ -1,5 +1,6 @@
 import 'package:bubonelka/classes/phrase_card.dart';
 import 'package:bubonelka/classes/theme.dart';
+import 'package:bubonelka/const_parameters.dart';
 import 'package:bubonelka/utilites/csv_data_manager.dart';
 
 class CollectionProvider {
@@ -70,5 +71,26 @@ class CollectionProvider {
         print('---');
       });
     });
+  }
+
+  void deletePhraseCard(PhraseCard phraseCard) {
+    totalCollection[phraseCard.themeNameTranslation]!.remove(phraseCard);
+  }
+
+  void replacePhraseCard(PhraseCard oldPhraseCard, PhraseCard newPhraseCard) {
+    if (oldPhraseCard != neutralPhraseCard) {
+      int index = totalCollection[newPhraseCard.themeNameTranslation]!
+          .indexOf(oldPhraseCard);
+      if (index != -1) {
+        totalCollection[newPhraseCard.themeNameTranslation]![index] =
+            newPhraseCard;
+      }
+    } else {
+      totalCollection[newPhraseCard.themeNameTranslation]!.add(newPhraseCard);
+    }
+  }
+
+  void addNewPhraseCard(PhraseCard phraseCard) {
+    totalCollection[phraseCard.themeNameTranslation]!.add(phraseCard);
   }
 }

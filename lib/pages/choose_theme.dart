@@ -15,6 +15,11 @@ class _ChooseThemePageState extends State<ChooseThemePage> {
       CollectionProvider.getInstance().getListOfThemesNames();
   List<String> chosenThemes = [];
 
+    @override
+  void initState() {
+    super.initState();  
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -65,8 +70,10 @@ class _ChooseThemePageState extends State<ChooseThemePage> {
             SizedBox(height: 16),
             FloatingActionButton.extended(
               onPressed: () {
-                CollectionProvider.getInstance().chosenThemes = chosenThemes;
-                Navigator.pushNamed(context, learningPageRoute);
+                if (!chosenThemes.isEmpty) {
+                  CollectionProvider.getInstance().chosenThemes = chosenThemes;
+                  Navigator.pushNamed(context, learningPageRoute);
+                }
               },
               label: Text('Начать занятие'),
               icon: Icon(Icons.play_arrow),

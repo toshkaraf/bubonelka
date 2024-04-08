@@ -25,7 +25,7 @@ class _ThemesListPageState extends State<ThemesListPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Выбор темы'),
+        title: const Text('Грамматика и фраз по темам'),
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -51,7 +51,7 @@ class _ThemesListPageState extends State<ThemesListPage> {
                         context,
                         MaterialPageRoute(
                             builder: (context) => ThemePage(
-                                  themeName: themeName,
+                                  themeNameTranslation: themeName,
                                 ))).then((result) {
                       if (result == null) {
                         setState(() {});

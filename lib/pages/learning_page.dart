@@ -1,3 +1,4 @@
+import 'package:bubonelka/classes/collection_provider.dart';
 import 'package:bubonelka/classes/phrase_card.dart';
 import 'package:bubonelka/const_parameters.dart';
 import 'package:bubonelka/pages/current_phrases_set.dart';
@@ -69,7 +70,14 @@ class _LearningPageState extends State<LearningPage> {
                     _showSpeedDialog(context);
                   }),
               TransparentIconButton(icon: Icons.book, onPressed: () {}),
-              TransparentIconButton(icon: Icons.star, onPressed: () {}),
+              TransparentIconButton(
+                  icon: Icons.star,
+                  onPressed: () {
+                    _currentPhrase.themeNameTranslation = favoritePhrasesSet;
+                    CollectionProvider.getInstance()
+                        .getTotalCollection()[favoritePhrasesSet]!
+                        .add(_currentPhrase);
+                  }),
             ],
           ),
           SizedBox(height: 20),
@@ -247,14 +255,19 @@ class _SpeedSliderDialogState extends State<SpeedSliderDialog> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Slider(
-            value: (_tempSpeedRate - minSpeed) * 100 / (maxSpeed - minSpeed) * 2.5 + 50,
+            value: (_tempSpeedRate - minSpeed) *
+                    100 /
+                    (maxSpeed - minSpeed) *
+                    2.5 +
+                50,
             min: 50,
             max: 200,
             divisions: 15, // С учетом диапазона от 50% до 200%
             label: '${(_tempSpeedRate * 100).round()}%',
             onChanged: (double value) {
               setState(() {
-                _tempSpeedRate = (value - 50) / 2.5 / 100 * (maxSpeed - minSpeed) + minSpeed;
+                _tempSpeedRate =
+                    (value - 50) / 2.5 / 100 * (maxSpeed - minSpeed) + minSpeed;
               });
             },
           ),
@@ -273,7 +286,6 @@ class _SpeedSliderDialogState extends State<SpeedSliderDialog> {
     );
   }
 }
-
 
 class TransparentIconButton extends StatelessWidget {
   final IconData icon;

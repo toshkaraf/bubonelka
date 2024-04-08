@@ -27,6 +27,7 @@ class CurrentPhrasesSet {
         phraseCardsCounter++;
         currentPhraseCard =
             totalCollection[_chosenThemes[themeCounter]]![phraseCardsCounter];
+        if (!currentPhraseCard.isActive) getNextPhraseCard();
         currentPhraseCard.printPhraseCard();
         print(chosenThemes[themeCounter]);
         return currentPhraseCard;
@@ -35,6 +36,7 @@ class CurrentPhrasesSet {
         phraseCardsCounter = 0;
         currentPhraseCard =
             totalCollection[_chosenThemes[themeCounter]]![phraseCardsCounter];
+        if (!currentPhraseCard.isActive) getNextPhraseCard();
         print(chosenThemes[themeCounter]);
         currentPhraseCard.printPhraseCard();
         return currentPhraseCard;
@@ -55,14 +57,18 @@ class CurrentPhrasesSet {
         totalCollection[_chosenThemes[themeCounter]] != null) {
       if (phraseCardsCounter > 1) {
         phraseCardsCounter--;
-        return totalCollection[_chosenThemes[themeCounter]]![
-            phraseCardsCounter];
+        currentPhraseCard =
+            totalCollection[_chosenThemes[themeCounter]]![phraseCardsCounter];
+        if (!currentPhraseCard.isActive) getNextPhraseCard();
+        return currentPhraseCard;
       } else if (themeCounter != 0) {
         themeCounter--;
         phraseCardsCounter =
             totalCollection[_chosenThemes[themeCounter]]!.length - 1;
-        return totalCollection[_chosenThemes[themeCounter]]![
-            phraseCardsCounter];
+        currentPhraseCard =
+            totalCollection[_chosenThemes[themeCounter]]![phraseCardsCounter];
+        if (!currentPhraseCard.isActive) getNextPhraseCard();
+        return currentPhraseCard;
       } else {
         themeCounter = 0;
         phraseCardsCounter = 0;

@@ -19,11 +19,18 @@ PhraseCard emptyPhraseCard = PhraseCard(
     translationPhrase:
         List.filled(1, 'Фраз для изучения больше нет! Выбери новые темы.'),
     germanPhrase: List.filled(
-        1, 'Es gibt keine Phrasen mehr zu lernen! Wählen Sie neue Themen.'));
+        1, 'Es gibt keine Phrasen mehr zu lernen! Wählen Sie neue Themen.'),
+        isActive: true);
 
 PhraseCard neutralPhraseCard = PhraseCard(
     themeNameTranslation: "",
     translationPhrase: List.filled(1, ''),
-    germanPhrase: List.filled(1, ''));
+    germanPhrase: List.filled(1, ''),
+    isActive: true);
 
-int delayBeforGermanPhraseInSeconds = 5;
+const int delayBeforGermanPhraseInSeconds = 5;
+
+const String editPhrasePageName = 'Редактируем фразы';
+const String createPhrasePageName = 'Добавляем фразы';
+
+
