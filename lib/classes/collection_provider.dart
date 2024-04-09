@@ -37,8 +37,8 @@ class CollectionProvider {
     return totalCollection;
   }
 
-  List<PhraseCard> getListOfPhrasesForTheme(String theme) {
-    return totalCollection[theme]!;
+  List<PhraseCard>? getListOfPhrasesForTheme(String theme) {
+    return totalCollection[theme];
   }
 
   // Геттер для mapOfThemes
@@ -104,5 +104,9 @@ class CollectionProvider {
 
   void upgradeStatisticForTheme(String themeNameTranslation) {
     mapOfThemes[themeNameTranslation]!.numberOfRepetition++;
+  }
+
+  void deleteTheme(String themeNameTranslation) {
+    mapOfThemes.remove(themeNameTranslation);
   }
 }

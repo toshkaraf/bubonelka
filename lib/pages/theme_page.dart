@@ -17,16 +17,17 @@ class ThemePage extends StatefulWidget {
 class _ThemePageState extends State<ThemePage> {
   final FlutterTts flutterTts = FlutterTts();
   CollectionProvider collectionProvider = CollectionProvider.getInstance();
-  List<PhraseCard> psraseCardsList = [];
+  List<PhraseCard> phraseCardsList = [];
   bool isTranslationFirst = false;
-  double textGap = 4.0; // Уменьшаем расстояние между словом и переводом
+  double textGap = 3.0; // Уменьшаем расстояние между словом и переводом
   PhraseCard _chosenflashCard = neutralPhraseCard;
 
   @override
   void initState() {
     super.initState();
-    psraseCardsList = List<PhraseCard>.from(collectionProvider
-        .getListOfPhrasesForTheme(widget.themeNameTranslation));
+    phraseCardsList = collectionProvider
+            .getListOfPhrasesForTheme(widget.themeNameTranslation) ??
+        [];
   }
 
   @override
@@ -79,122 +80,133 @@ class _ThemePageState extends State<ThemePage> {
             ],
           ),
           Expanded(
-            child: ListView.separated(
-              itemCount: psraseCardsList.length,
-              separatorBuilder: (context, index) =>
-                  SizedBox(width: dividerWidth),
-              itemBuilder: (context, index) {
-                PhraseCard phraseCard = psraseCardsList[index];
-                String translateText = '';
-                String getmanText = '';
+            child: phraseCardsList.isEmpty
+                ? Center(
+                    child: Text(
+                      'Список пуст',
+                      style: TextStyle(fontSize: 18),
+                    ),
+                  )
+                : ListView.separated(
+                    itemCount: phraseCardsList.length,
+                    separatorBuilder: (context, index) =>
+                        SizedBox(width: dividerWidth),
+                    itemBuilder: (context, index) {
+                      PhraseCard phraseCard = phraseCardsList[index];
+                      String translateText = '';
+                      String getmanText = '';
 
-                for (int i = 0; i < 3; i++) {
-                  translateText +=
-                      '${phraseCard.translationPhrase[i]}\n';
-                  getmanText +=
-                      '${phraseCard.germanPhrase[i]}\n';
-                }
-                String frontText = isTranslationFirst
-                    ? translateText
-                    : getmanText;
-                String backText = isTranslationFirst
-                    ? getmanText
-                    : translateText;
+                      for (int i = 0; i < 3; i++) {
+                        if (phraseCard.translationPhrase[i] != '') {
+                          translateText +=
+                              '${phraseCard.translationPhrase[i]}\n\n';
+                        }
+                        if (phraseCard.germanPhrase[i] != '') {
+                          getmanText += '${phraseCard.germanPhrase[i]}\n\n';
+                        }
+                      }
+                      String frontText =
+                          isTranslationFirst ? translateText : getmanText;
+                      String backText =
+                          isTranslationFirst ? getmanText : translateText;
 
-                return Column(
-                  children: [
-                    ListTile(
-                      onTap: () {
-                        setState(() {
-                          _chosenflashCard = phraseCard;
-                        });
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => EditPhraseCardPage(
-                              widgetName: editPhrasePageName,
-                              phraseCard: _chosenflashCard,
-                              themeNameTranslation: widget.themeNameTranslation,
-                            ),
-                          ),
-                        ).then((editedPhraseCard) {
-                          if (editedPhraseCard.isDeleted) {
-                            setState(() {
-                              psraseCardsList = List<PhraseCard>.from(
-                                  collectionProvider.getListOfPhrasesForTheme(
-                                      widget.themeNameTranslation));
-                            });
-                          } else {
-                            setState(() {
-                              psraseCardsList = List<PhraseCard>.from(
-                                  collectionProvider.getListOfPhrasesForTheme(
-                                      widget.themeNameTranslation));
-                            });
-                          }
-                        });
-                      },
-                      title: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      return Column(
                         children: [
-                          const SizedBox(height: 4),
-                          Text(
-                            frontText,
-                            style: const TextStyle(
-                              fontSize: 16.0,
-                              color: Colors
-                                  .black, // Set the German word text color to black
-                              fontWeight: FontWeight.bold, // Remove bold
-                            ),
-                          ),
-                        ],
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 8),
-                          Text(
-                            backText,
-                            style: const TextStyle(
-                              fontSize: 14.0,
-                              color: Colors
-                                  .black, // Set the translation text color to black
-                            ),
-                          ),
-                        ],
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            onPressed: () {
-                              speakGermanWord(
-                                  phraseCard.germanPhrase.toString());
-                            },
-                            icon: const Icon(Icons.volume_up),
-                          ),
-                          IconButton(
-                            onPressed: () {
+                          ListTile(
+                            onTap: () {
                               setState(() {
-                                phraseCard.toggleActive();
+                                _chosenflashCard = phraseCard;
+                              });
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => EditPhraseCardPage(
+                                    widgetName: editPhrasePageName,
+                                    phraseCard: _chosenflashCard,
+                                    themeNameTranslation:
+                                        widget.themeNameTranslation,
+                                  ),
+                                ),
+                              ).then((editedPhraseCard) {
+                                if (editedPhraseCard.isDeleted) {
+                                  setState(() {
+                                    phraseCardsList = collectionProvider
+                                            .getListOfPhrasesForTheme(
+                                                widget.themeNameTranslation) ??
+                                        [];
+                                  });
+                                } else {
+                                  setState(() {
+                                    phraseCardsList = collectionProvider
+                                            .getListOfPhrasesForTheme(
+                                                widget.themeNameTranslation) ??
+                                        [];
+                                  });
+                                }
                               });
                             },
-                            icon: Checkbox(
-                              value: phraseCard.isActive,
-                              onChanged: (value) {
-                                setState(() {
-                                  phraseCard.toggleActive();
-                                });
-                              },
+                            title: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(height: 4),
+                                Text(
+                                  frontText,
+                                  style: const TextStyle(
+                                    fontSize: 16.0,
+                                    color: Colors
+                                        .black, // Set the German word text color to black
+                                    fontWeight: FontWeight.bold, // Remove bold
+                                  ),
+                                ),
+                              ],
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(height: 8),
+                                Text(
+                                  backText,
+                                  style: const TextStyle(
+                                    fontSize: 14.0,
+                                    color: Colors
+                                        .black, // Set the translation text color to black
+                                  ),
+                                ),
+                              ],
+                            ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  onPressed: () {
+                                    speakGermanWord(
+                                        phraseCard.germanPhrase.toString());
+                                  },
+                                  icon: const Icon(Icons.volume_up),
+                                ),
+                                IconButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      phraseCard.toggleActive();
+                                    });
+                                  },
+                                  icon: Checkbox(
+                                    value: phraseCard.isActive,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        phraseCard.toggleActive();
+                                      });
+                                    },
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
+                          const Divider(),
                         ],
-                      ),
-                    ),
-                    const Divider(),
-                  ],
-                );
-              },
-            ),
+                      );
+                    },
+                  ),
           ),
         ],
       ),
@@ -214,8 +226,9 @@ class _ThemePageState extends State<ThemePage> {
               ),
             ).then((editedPhraseCard) {
               setState(() {
-                psraseCardsList = List<PhraseCard>.from(collectionProvider
-                    .getListOfPhrasesForTheme(widget.themeNameTranslation));
+                phraseCardsList = collectionProvider.getListOfPhrasesForTheme(
+                        widget.themeNameTranslation) ??
+                    [];
               });
             });
           },

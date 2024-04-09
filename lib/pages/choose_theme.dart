@@ -11,13 +11,30 @@ class ChooseThemePage extends StatefulWidget {
 
 class _ChooseThemePageState extends State<ChooseThemePage> {
   TextEditingController _playlistNameController = TextEditingController();
+  TextEditingController _filterController = TextEditingController();
   final List<String> listOfThemes =
       CollectionProvider.getInstance().getListOfThemesNames();
   List<String> chosenThemes = [];
+  List<String> filteredThemes = [];
 
-    @override
+  @override
   void initState() {
-    super.initState();  
+    super.initState();
+    filteredThemes.addAll(listOfThemes);
+    _filterController.addListener(() {
+      if (_filterController.text.isEmpty) {
+        setState(() {
+          filteredThemes.clear();
+          filteredThemes.addAll(listOfThemes);
+        });
+      } else {
+        setState(() {
+          filteredThemes = listOfThemes
+              .where((theme) => theme.toLowerCase().contains(_filterController.text.toLowerCase()))
+              .toList();
+        });
+      }
+    });
   }
 
   @override
@@ -34,28 +51,42 @@ class _ChooseThemePageState extends State<ChooseThemePage> {
           ),
         ],
       ),
-      body: ListView.builder(
-        itemCount: listOfThemes.length,
-        itemBuilder: (context, index) {
-          final themeName = listOfThemes[index];
-          final isChecked = chosenThemes.contains(themeName);
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              controller: _filterController,
+              decoration: InputDecoration(
+                labelText: 'Фильтр по названию темы',
+                prefixIcon: Icon(Icons.search),
+              ),
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: filteredThemes.length,
+              itemBuilder: (context, index) {
+                final themeName = filteredThemes[index];
+                final isChecked = chosenThemes.contains(themeName);
 
-          return CheckboxListTile(
-            title: Text(themeName),
-            value: isChecked,
-            onChanged: (value) {
-              setState(() {
-                if (value!) {
-                  chosenThemes
-                      .add(themeName); // Добавляем themeName в chosenThemes
-                } else {
-                  chosenThemes
-                      .remove(themeName); // Удаляем themeName из chosenThemes
-                }
-              });
-            },
-          );
-        },
+                return CheckboxListTile(
+                  title: Text(themeName),
+                  value: isChecked,
+                  onChanged: (value) {
+                    setState(() {
+                      if (value!) {
+                        chosenThemes.add(themeName);
+                      } else {
+                        chosenThemes.remove(themeName);
+                      }
+                    });
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
       floatingActionButton: SingleChildScrollView(
         child: Column(
@@ -120,6 +151,7 @@ class _ChooseThemePageState extends State<ChooseThemePage> {
   @override
   void dispose() {
     _playlistNameController.dispose();
+    _filterController.dispose();
     super.dispose();
   }
 }

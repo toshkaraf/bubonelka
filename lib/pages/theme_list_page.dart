@@ -16,12 +16,29 @@ class _ThemesListPageState extends State<ThemesListPage> {
   final TextEditingController _themeTranslationNameController =
       TextEditingController();
   final TextEditingController _themeNameController = TextEditingController();
+  final TextEditingController _filterController = TextEditingController(); // Add filter controller
 
-  List<String> listOfThemes =
+  List<String> listOfThemesTranslations =
       CollectionProvider.getInstance().themesMap.keys.toList();
 
   bool _isNewThemeTranslationNameFieldFocused = false;
   bool _isNewThemeNameFieldFocused = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _filterController.addListener(() {
+      setState(() {
+        listOfThemesTranslations = CollectionProvider.getInstance()
+            .themesMap
+            .keys
+            .where((theme) => theme
+                .toLowerCase()
+                .contains(_filterController.text.toLowerCase()))
+            .toList();
+      });
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,29 +49,31 @@ class _ThemesListPageState extends State<ThemesListPage> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Padding(
-            padding: EdgeInsets.all(8.0),
-            child: Text(
-              'прогресс %',
-              style: TextStyle(
-                fontSize: 12.0,
-                color: Colors.grey,
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              controller: _filterController,
+              decoration: InputDecoration(
+                labelText: 'Фильтр по названию темы',
+                prefixIcon: Icon(Icons.search),
               ),
             ),
           ),
           Expanded(
             child: ListView.builder(
-              itemCount: listOfThemes.length,
+              itemCount: listOfThemesTranslations.length,
               itemBuilder: (context, index) {
-                String themeName = listOfThemes[index];
+                String themeNameTranslation = listOfThemesTranslations[index];
                 return GestureDetector(
                   onTap: () {
                     Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => ThemePage(
-                                  themeNameTranslation: themeName,
-                                ))).then((result) {
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ThemePage(
+                          themeNameTranslation: themeNameTranslation,
+                        ),
+                      ),
+                    ).then((result) {
                       if (result == null) {
                         setState(() {});
                       }
@@ -64,19 +83,50 @@ class _ThemesListPageState extends State<ThemesListPage> {
                     children: [
                       ListTile(
                         title: Text(
-                          themeName,
+                          themeNameTranslation,
                           style: const TextStyle(
                             fontSize: 16.0,
                             color: Colors.black,
                           ),
                         ),
-                        trailing: const Icon(
-                          Icons.arrow_forward_ios,
-                          color: Colors.grey,
-                          size: 16.0,
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              onPressed: () {
+                                // Navigate to help page
+                                Navigator.pushNamed(context, '/help');
+                              },
+                              icon: Icon(
+                                Icons.book,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            PopupMenuButton(
+                              itemBuilder: (context) => [
+                                PopupMenuItem(
+                                  child: ListTile(
+                                    leading: Icon(
+                                      Icons.delete,
+                                      color: Colors.red,
+                                    ),
+                                    title: Text(
+                                      'Удалить тему',
+                                      style: TextStyle(color: Colors.red),
+                                    ),
+                                    onTap: () {
+                                      // Show confirmation dialog
+                                      _showDeleteConfirmationDialog(
+                                          themeNameTranslation);
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                         subtitle: Text(
-                          "проработано ${collectionProvider.themesMap[themeName]!.numberOfRepetition} раз",
+                          "проработано ${collectionProvider.themesMap[themeNameTranslation]!.numberOfRepetition} раз",
                           style: const TextStyle(
                             fontSize: 12.0,
                             color: Colors.grey,
@@ -132,8 +182,9 @@ class _ThemesListPageState extends State<ThemesListPage> {
               TextField(
                 controller: _themeNameController,
                 decoration: InputDecoration(
-                  hintText:
-                      _isNewThemeNameFieldFocused ? '' : 'Titel auf Deutsch',
+                  hintText: _isNewThemeNameFieldFocused
+                      ? ''
+                      : 'Titel auf Deutsch',
                 ),
                 onChanged: (value) {
                   setState(() {
@@ -154,13 +205,13 @@ class _ThemesListPageState extends State<ThemesListPage> {
                             collectionProvider.addNewTheme(
                                 _themeTranslationNameController.text,
                                 _themeNameController.text);
-                            listOfThemes =
+                            listOfThemesTranslations =
                                 collectionProvider.themesMap.keys.toList();
                           } catch (e) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text(
-                                  "Словарь с таки именем у нас уже есть",
+                                  "Словарь с таким именем уже существует",
                                   style: TextStyle(color: Colors.white),
                                 ),
                                 backgroundColor:
@@ -211,39 +262,39 @@ class _ThemesListPageState extends State<ThemesListPage> {
     );
   }
 
-  // void _loadThemeFromFile() async {
-  //   FilePickerResult? result = await FilePicker.platform.pickFiles(
-  //     type: FileType.custom,
-  //     allowedExtensions: ['csv', 'txt'],
-  //   );
-
-  //   if (result != null) {
-  //     File file = File(result.files.single.path!);
-  //     String themeName = _themeTranslationNameController.text;
-
-  //     try {
-  //       await CsvUserFileLoader.readFlashCardsFromFile(themeName, file);
-  //       _showLoadingSnackbar(context);
-  //     } catch (e) {
-  //       _showErrorDialog;
-  //     }
-  //   }
-  // }
-
-  // void _showLoadingSnackbar(BuildContext context) {
-  //   ScaffoldMessenger.of(context).showSnackBar(
-  //     const SnackBar(
-  //       content: Row(
-  //         children: [
-  //           CircularProgressIndicator(),
-  //           SizedBox(width: 16),
-  //           Text('Загружаем данные...'),
-  //         ],
-  //       ),
-  //       duration: Duration(seconds: 1), // Длительность снекбара
-  //     ),
-  //   );
-  // }
+  void _showDeleteConfirmationDialog(String themeNameTranslation) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('УДАЛЕНИЕ ТЕМЫ'),
+          content: const Text('Вы уверены, что хотите удалить тему?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Отменить'),
+            ),
+            TextButton(
+              onPressed: () {
+                collectionProvider.deleteTheme(themeNameTranslation);
+                setState(() {
+                  listOfThemesTranslations =
+                      collectionProvider.themesMap.keys.toList();
+                });
+                Navigator.of(context).pop();
+              },
+              child: const Text('Подтвердить', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    ).then((_) {
+      // Refresh the state after dialog is closed
+      setState(() {});
+    });
+  }
 
   void _showHelpDialog() {
     showDialog(
@@ -255,19 +306,6 @@ class _ThemesListPageState extends State<ThemesListPage> {
             'Тут вы можете учить новые слова. Нажмите на слова для изучения '
             'или на кнопку "Выбери слова для изучения", чтобы выбрать слова '
             'для изучения из доступных словарей. Затем нажмите на карту, чтобы начать.',
-          ),
-        );
-      },
-    );
-  }
-
-  void _showErrorDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return const AlertDialog(
-          content: Text(
-            'Ошибка при загрузке и обработке файла!',
           ),
         );
       },
