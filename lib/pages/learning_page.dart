@@ -77,6 +77,7 @@ class _LearningPageState extends State<LearningPage> {
                     CollectionProvider.getInstance()
                         .getTotalCollection()[favoritePhrasesSet]!
                         .add(_currentPhrase);
+                    _showFavoriteSnackbar(context);
                   }),
             ],
           ),
@@ -222,6 +223,21 @@ class _LearningPageState extends State<LearningPage> {
         );
       },
     );
+  }
+
+  void _showFavoriteSnackbar(BuildContext context) {
+    final snackBar = SnackBar(
+      content: Text('Фраза добавлена в Избранное'),
+      action: SnackBarAction(
+        label: 'Открыть',
+        onPressed: () {
+          // Действие при нажатии на кнопку "Открыть"
+          // Можно добавить переход на экран "Избранное"
+        },
+      ),
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
   }
 }
 

@@ -261,8 +261,8 @@ class _EditPhraseCardPageState extends State<EditPhraseCardPage> {
   }
 
   void _deletePhraseCard() {
-    collectionProvider.deletePhraseCard(widget.phraseCard!);
-    widget.phraseCard!.isDeleted = true;
+    collectionProvider.deletePhraseCard(widget.phraseCard);
+    widget.phraseCard.isDeleted = true;
     Navigator.pop(context, widget.phraseCard);
   }
 }

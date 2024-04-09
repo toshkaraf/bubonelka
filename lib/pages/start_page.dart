@@ -30,7 +30,7 @@ class StartPage extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            RoundedButton(title: 'Избранное', rout: learningPageRoute),
+            RoundedButton(title: 'Избранное', rout: favoritePhrasesPage),
             SizedBox(height: 20),
             RoundedButton(title: 'Рекомендуемое', rout: themeListPageRoute),
             SizedBox(height: 20),
