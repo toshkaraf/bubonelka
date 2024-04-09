@@ -93,12 +93,23 @@ class CsvDataManager {
       favoritePhrasesSet: [],
     };
     Map<String, ThemeClass> mapOfThemes = {};
+    Map<String, List<String>> mapOfPlaylists = {};
     String currentThemeName = '';
 
     for (var row in csvData) {
       // Check if the row has enough data to create a PhraseCard object
-      if (row.length >= 8) {
-        if (row[0] == themeConst) {
+      if (row.length >= 20) {
+        if (row[0] == playListConstForCSV) {
+          String playlistName =
+              row[1] != null && row[1].trim().isNotEmpty ? row[1] : '';
+          List<String> playlist = [];
+          for (int i = 0; i < maxNumberOfThemesInPlaylist; i++) {
+            if (row[i + 2] != null || row[i + 2].trim().isNotEmpty) {
+              playlist[i] = row[i + 2];
+            }
+          }
+          mapOfPlaylists[playlistName] = playlist;
+        } else if (row[0] == themeConstForCSV) {
           //create object Thema
           String themeNameTranslation =
               row[1] != null && row[1].trim().isNotEmpty ? row[1] : '';
@@ -122,8 +133,6 @@ class CsvDataManager {
           totalCollection[currentThemeName] = [];
         } else {
           // Parse CSV data and create PhraseCard objects
-          // String themeNameTranslation =
-          //     row[0] != null && row[0].trim().isNotEmpty ? row[0] : '';
           List<String> translationPhrases = [
             row[1] != null && row[1].trim().isNotEmpty ? row[1] : '',
             row[2] != null && row[2].trim().isNotEmpty ? row[2] : '',
@@ -135,16 +144,14 @@ class CsvDataManager {
             row[6] != null && row[6].trim().isNotEmpty ? row[6] : '',
           ];
           bool isActive = row[7] != null && row[7].trim().isNotEmpty
-            ? bool.parse(row[7])
-            : true;
+              ? bool.parse(row[7])
+              : true;
 
           PhraseCard phraseCard = PhraseCard(
               themeNameTranslation: currentThemeName,
               translationPhrase: translationPhrases,
               germanPhrase: germanPhrases,
               isActive: isActive);
-
-
 
           // add Theme names and sort PhraseCards to dictionaries
           // if (!phraseCardsMap.containsKey(themeNameTranslation)) {
@@ -171,13 +178,12 @@ class CsvDataManager {
     CollectionProvider.getInstance().setTotalCollection(totalCollection);
     CollectionProvider.getInstance().printCollection(totalCollection);
     CollectionProvider.getInstance().mapOfThemes = mapOfThemes;
+    CollectionProvider.getInstance().setMapOfPlaylists(mapOfPlaylists);
   }
 
-  Future<void> uploadCsvData(
-      Map<String, List<PhraseCard>> collectionOfPhraseCard,
-      String filePath) async {
-    List<List<dynamic>> allCsvData =
-        _convertSetToCsvData(collectionOfPhraseCard);
+  Future<void> uploadCsvData(String filePath) async {
+    List<List<dynamic>> allCsvData = _convertDataToCsvData();
+    print(allCsvData.toString());
     await _uploadAllCsvData(allCsvData, filePath);
 
     // // Проверяем, нужно ли сохранить в резервную копию (сохраняется каждый второй раз вызова метода )
@@ -196,16 +202,32 @@ class CsvDataManager {
     // }
   }
 
-  List<List<dynamic>> _convertSetToCsvData(
-      Map<String, List<PhraseCard>> totalCollection) {
+  List<List<dynamic>> _convertDataToCsvData() {
     List<List<dynamic>> csvData = [];
+    Map<String, List<PhraseCard>> totalCollection =
+        CollectionProvider.getInstance().getTotalCollection();
     Map<String, ThemeClass> mapOfThemes =
         CollectionProvider.getInstance().themesMap;
-    for (var key in totalCollection.keys) {
-      ThemeClass theme = mapOfThemes[key]!;
+    Map<String, List<String>> mapOfPlaylists =
+        CollectionProvider.getInstance().playlistsMap;
 
+    for (var key in mapOfPlaylists.keys) {
+      var list = mapOfPlaylists[key];
+      if (list != null) {
+        csvData.add(
+            [playListConstForCSV, key, ...list]); // Добавляем список напрямую
+      }
+    }
+
+    for (var key in totalCollection.keys) {
+      ThemeClass theme;
+      if (key == favoritePhrasesSet) {
+        theme = favoriteSet;
+      } else {
+        theme = mapOfThemes[key]!;
+      }
       csvData.add([
-        themeConst,
+        themeConstForCSV,
         theme.themeNameTranslation,
         theme.themeName,
         theme.numberOfRepetition,

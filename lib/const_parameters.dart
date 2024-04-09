@@ -1,16 +1,22 @@
 import 'package:bubonelka/classes/phrase_card.dart';
+import 'package:bubonelka/classes/theme.dart';
 
 const String csvFileOfCollection = 'assets/phrase_collection.csv';
 const String csvFileOfCollectionNew = 'phrase_collection_new.csv';
-const String csvFileOfThemes = 'themes.csv';
-const String csvFileOfThemesNew = 'themes_new.csv';
+const String csvFileReservCopy = 'reserve_collection_new.csv';
 
 const String noPath = '';
 
 const String favoritePhrasesSet = 'Избранное';
+ThemeClass favoriteSet = ThemeClass(
+    themeNameTranslation: favoritePhrasesSet,
+    themeName: '',
+    numberOfRepetition: 0);
 
 // for reading und parsing csv
-const String themeConst = 'Тема##';
+const String themeConstForCSV = 'Тема##';
+const String playListConstForCSV = "Плейлист##";
+const int maxNumberOfThemesInPlaylist = 20;
 
 const dividerWidth = 8.0;
 

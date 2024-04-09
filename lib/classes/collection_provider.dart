@@ -16,10 +16,11 @@ class CollectionProvider {
   Map<String, ThemeClass> mapOfThemes = {};
   List<String> _chosenThemes = [];
   Map<String, List<String>> mapOfPlaylists = {};
+  CsvDataManager csvDataManager = CsvDataManager.getInstance();
 
   Future<void> initializeCollectionProvider(String filePath) async {
     try {
-      await CsvDataManager.getInstance().loadDataFromFile(filePath);
+      await csvDataManager.loadDataFromFile(filePath);
       printCollection(totalCollection);
     } on Exception catch (e) {
       // Перехватываем исключение и пробрасываем его дальше
@@ -41,10 +42,8 @@ class CollectionProvider {
     return totalCollection[theme];
   }
 
-  // Геттер для mapOfThemes
   Map<String, ThemeClass> get themesMap => mapOfThemes;
 
-  // Сеттер для mapOfThemes
   set themesMap(Map<String, ThemeClass> value) => mapOfThemes = value;
 
   List<String> getListOfThemesNames() {
@@ -53,12 +52,18 @@ class CollectionProvider {
 
   Map<String, List<String>> get playlistsMap => mapOfPlaylists;
 
+  void setMapOfPlaylists(Map<String, List<String>> value) {
+    mapOfPlaylists = value;
+  }
+
   void addToPlaylists(String nameOfPlaylist, List<String> themesNames) {
     mapOfPlaylists[nameOfPlaylist] = themesNames;
+    saveData();
   }
 
   void deleteThemeOutOfPlaylist(String nameOfPlaylist, String themeName) {
     mapOfPlaylists[nameOfPlaylist]?.remove(themeName);
+    saveData();
   }
 
   List<String> get chosenThemes => _chosenThemes;
@@ -79,6 +84,7 @@ class CollectionProvider {
 
   void deletePhraseCard(PhraseCard phraseCard) {
     totalCollection[phraseCard.themeNameTranslation]!.remove(phraseCard);
+    saveData();
   }
 
   void replacePhraseCard(PhraseCard oldPhraseCard, PhraseCard newPhraseCard) {
@@ -92,10 +98,12 @@ class CollectionProvider {
     } else {
       totalCollection[newPhraseCard.themeNameTranslation]!.add(newPhraseCard);
     }
+    saveData();
   }
 
   void addNewPhraseCard(PhraseCard phraseCard) {
     totalCollection[phraseCard.themeNameTranslation]!.add(phraseCard);
+    saveData();
   }
 
   void addNewTheme(String themeNameTranslation, String themeName) {
@@ -104,21 +112,36 @@ class CollectionProvider {
       themeName: themeName,
       numberOfRepetition: 0,
     );
+    saveData();
   }
 
   void upgradeStatisticForTheme(String themeNameTranslation) {
     mapOfThemes[themeNameTranslation]!.numberOfRepetition++;
+    saveData();
   }
 
   void deleteTheme(String themeNameTranslation) {
     mapOfThemes.remove(themeNameTranslation);
+    for (var playlistName in mapOfPlaylists.keys) {
+      deleteThemeOutOfPlaylist(playlistName, themeNameTranslation);
+    }
+    saveData();
   }
 
   void deleteplaylist(String themeNameTranslation) {
     mapOfPlaylists.remove(themeNameTranslation);
+    saveData();
   }
 
   void setChosenThemesFromPlaylist(String playlistName) {
     chosenThemes = mapOfPlaylists[playlistName] ?? [];
+  }
+
+  void saveData() async {
+    try {
+      await csvDataManager.uploadCsvData(noPath);
+    } catch (e) {
+      print('Error saving data to CSV: $e');
+    }
   }
 }

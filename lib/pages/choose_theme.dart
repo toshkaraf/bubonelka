@@ -119,6 +119,19 @@ class _ChooseThemePageState extends State<ChooseThemePage> {
   }
 
   Future<void> _showCreatePlaylistDialog(BuildContext context) async {
+    final maxNumberOfThemesInPlaylist =
+        5; // Максимальное количество тем в плейлисте
+    if (chosenThemes.length > maxNumberOfThemesInPlaylist) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Вы не можете создать плейлист более, чем из $maxNumberOfThemesInPlaylist тем',
+          ),
+        ),
+      );
+      return;
+    }
+
     return showDialog(
       context: context,
       builder: (context) {
