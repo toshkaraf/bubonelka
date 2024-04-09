@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:bubonelka/classes/collection_provider.dart';
 import 'package:bubonelka/classes/settings_and_state.dart';
-import 'package:bubonelka/classes/theme.dart';
 import 'package:bubonelka/pages/theme_page.dart';
 import 'package:flutter/material.dart';
 
@@ -14,18 +13,21 @@ class _ThemesListPageState extends State<ThemesListPage> {
   SettingsAndState settingsAndState = SettingsAndState.getInstance();
   CollectionProvider collectionProvider = CollectionProvider.getInstance();
 
-  final TextEditingController _dictionaryNameController =
+  final TextEditingController _themeTranslationNameController =
       TextEditingController();
+  final TextEditingController _themeNameController = TextEditingController();
 
-  List<String> listOfThemes = CollectionProvider.getInstance().themesMap.keys.toList();
+  List<String> listOfThemes =
+      CollectionProvider.getInstance().themesMap.keys.toList();
 
-  bool _isNewDictionaryNameFieldFocused = false;
+  bool _isNewThemeTranslationNameFieldFocused = false;
+  bool _isNewThemeNameFieldFocused = false;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Грамматика и фраз по темам'),
+        title: const Text('Фразы по темам'),
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -73,10 +75,8 @@ class _ThemesListPageState extends State<ThemesListPage> {
                           color: Colors.grey,
                           size: 16.0,
                         ),
-                        subtitle: Text("статистика",
-                          // "${settingsAndState.dictionariesInfo[themeName]![DictionaryStatistic.repeating] ?? 0}/"
-                          // "${settingsAndState.dictionariesInfo[themeName]![DictionaryStatistic.tested] ?? 0}/"
-                          // "${settingsAndState.dictionariesInfo[themeName]![DictionaryStatistic.totalNumber] ?? 0}",
+                        subtitle: Text(
+                          "проработано ${collectionProvider.themesMap[themeName]!.numberOfRepetition} раз",
                           style: const TextStyle(
                             fontSize: 12.0,
                             color: Colors.grey,
@@ -94,15 +94,15 @@ class _ThemesListPageState extends State<ThemesListPage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          _showAddDictionaryDialog(context);
+          _showAddThemeDialog(context);
         },
         child: const Icon(Icons.add),
       ),
     );
   }
 
-  void _showAddDictionaryDialog(BuildContext context) {
-    _dictionaryNameController.text = '';
+  void _showAddThemeDialog(BuildContext context) {
+    _themeTranslationNameController.text = '';
     showDialog(
       context: context,
       builder: (context) {
@@ -110,20 +110,34 @@ class _ThemesListPageState extends State<ThemesListPage> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(15.0),
           ),
-          title: const Center(child: Text('Название темы:')),
+          title: const Center(child: Text('Новая тема:')),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               const SizedBox(height: 15.0),
               TextField(
-                controller: _dictionaryNameController,
+                controller: _themeTranslationNameController,
                 decoration: InputDecoration(
-                  hintText:
-                      _isNewDictionaryNameFieldFocused ? '' : 'Новая тема',
+                  hintText: _isNewThemeTranslationNameFieldFocused
+                      ? ''
+                      : 'Название темы',
                 ),
                 onChanged: (value) {
                   setState(() {
-                    _isNewDictionaryNameFieldFocused = true;
+                    _isNewThemeTranslationNameFieldFocused = true;
+                  });
+                },
+              ),
+              const SizedBox(height: 30.0),
+              TextField(
+                controller: _themeNameController,
+                decoration: InputDecoration(
+                  hintText:
+                      _isNewThemeNameFieldFocused ? '' : 'Titel auf Deutsch',
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    _isNewThemeNameFieldFocused = true;
                   });
                 },
               ),
@@ -132,15 +146,16 @@ class _ThemesListPageState extends State<ThemesListPage> {
                 children: [
                   TextButton(
                     onPressed: () {
-                      if (_dictionaryNameController.text.isEmpty) {
-                        _showNoDictionaryNameDialog();
+                      if (_themeTranslationNameController.text.isEmpty) {
+                        _showNoThemeNameDialog();
                       } else {
                         setState(() {
                           try {
-                            // settingsAndState.addNewDictionaryName(
-                            //     _dictionaryNameController.text);
-                            // collectionProvider.createNewDictionary(
-                            //     _dictionaryNameController.text, {});
+                            collectionProvider.addNewTheme(
+                                _themeTranslationNameController.text,
+                                _themeNameController.text);
+                            listOfThemes =
+                                collectionProvider.themesMap.keys.toList();
                           } catch (e) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
@@ -163,13 +178,13 @@ class _ThemesListPageState extends State<ThemesListPage> {
                   const SizedBox(height: 8.0),
                   TextButton.icon(
                     onPressed: () async {
-                      if (_dictionaryNameController.text.isEmpty) {
-                        _showNoDictionaryNameDialog();
+                      if (_themeTranslationNameController.text.isEmpty) {
+                        _showNoThemeNameDialog();
                       } else {
-                        // _loadDictionaryFromFile();
+                        // _loadThemeFromFile();
                         // setState(() {
-                        //   settingsAndState.addNewDictionaryName(
-                        //       _dictionaryNameController.text);
+                        //   settingsAndState.addNewThemeName(
+                        //       _themeTranslationNameController.text);
                         // });
                         // Navigator.pop(context);
                       }
@@ -196,7 +211,7 @@ class _ThemesListPageState extends State<ThemesListPage> {
     );
   }
 
-  // void _loadDictionaryFromFile() async {
+  // void _loadThemeFromFile() async {
   //   FilePickerResult? result = await FilePicker.platform.pickFiles(
   //     type: FileType.custom,
   //     allowedExtensions: ['csv', 'txt'],
@@ -204,7 +219,7 @@ class _ThemesListPageState extends State<ThemesListPage> {
 
   //   if (result != null) {
   //     File file = File(result.files.single.path!);
-  //     String themeName = _dictionaryNameController.text;
+  //     String themeName = _themeTranslationNameController.text;
 
   //     try {
   //       await CsvUserFileLoader.readFlashCardsFromFile(themeName, file);
@@ -259,7 +274,7 @@ class _ThemesListPageState extends State<ThemesListPage> {
     );
   }
 
-  void _showNoDictionaryNameDialog() {
+  void _showNoThemeNameDialog() {
     showDialog(
       context: context,
       builder: (BuildContext context) {

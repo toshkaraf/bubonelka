@@ -51,7 +51,7 @@ class CsvDataManager {
           //   if (await reserveCopyFile.exists()) {
           //     csvPhraseString = await reserveCopyFile.readAsString();
           //     settingsAndState.listOfAllDictionariesNames
-          //         .remove(favoriteDictionaryName);
+          //         .remove(favoriteThemeName);
           //     // restoreDataFromReseveCopy();
           //   }
           // }
@@ -146,7 +146,7 @@ class CsvDataManager {
 
 
 
-          // add dictionary names and sort PhraseCards to dictionaries
+          // add Theme names and sort PhraseCards to dictionaries
           // if (!phraseCardsMap.containsKey(themeNameTranslation)) {
           //   phraseCardsMap[themeNameTranslation] = {};
           // }

@@ -93,4 +93,16 @@ class CollectionProvider {
   void addNewPhraseCard(PhraseCard phraseCard) {
     totalCollection[phraseCard.themeNameTranslation]!.add(phraseCard);
   }
+
+  void addNewTheme(String themeNameTranslation, String themeName) {
+    mapOfThemes[themeNameTranslation] = ThemeClass(
+      themeNameTranslation: themeNameTranslation,
+      themeName: themeName,
+      numberOfRepetition: 0,
+    );
+  }
+
+  void upgradeStatisticForTheme(String themeNameTranslation) {
+    mapOfThemes[themeNameTranslation]!.numberOfRepetition++;
+  }
 }

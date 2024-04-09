@@ -85,12 +85,21 @@ class _ThemePageState extends State<ThemePage> {
                   SizedBox(width: dividerWidth),
               itemBuilder: (context, index) {
                 PhraseCard phraseCard = psraseCardsList[index];
+                String translateText = '';
+                String getmanText = '';
+
+                for (int i = 0; i < 3; i++) {
+                  translateText +=
+                      '${phraseCard.translationPhrase[i]}\n';
+                  getmanText +=
+                      '${phraseCard.germanPhrase[i]}\n';
+                }
                 String frontText = isTranslationFirst
-                    ? phraseCard.translationPhrase.toString()
-                    : phraseCard.germanPhrase.toString();
+                    ? translateText
+                    : getmanText;
                 String backText = isTranslationFirst
-                    ? phraseCard.germanPhrase.toString()
-                    : phraseCard.translationPhrase.toString();
+                    ? getmanText
+                    : translateText;
 
                 return Column(
                   children: [

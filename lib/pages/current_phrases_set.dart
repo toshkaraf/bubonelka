@@ -20,7 +20,7 @@ class CurrentPhrasesSet {
   }
 
   PhraseCard getNextPhraseCard() {
-    if (themeCounter <= chosenThemes.length - 1 &&
+    if (themeCounter <= _chosenThemes.length - 1 &&
         totalCollection[_chosenThemes[themeCounter]] != null) {
       if (phraseCardsCounter <
           totalCollection[_chosenThemes[themeCounter]]!.length - 1) {
@@ -29,18 +29,22 @@ class CurrentPhrasesSet {
             totalCollection[_chosenThemes[themeCounter]]![phraseCardsCounter];
         if (!currentPhraseCard.isActive) getNextPhraseCard();
         currentPhraseCard.printPhraseCard();
-        print(chosenThemes[themeCounter]);
+        print(_chosenThemes[themeCounter]);
         return currentPhraseCard;
-      } else if (themeCounter != chosenThemes.length - 1) {
+      } else if (themeCounter != _chosenThemes.length - 1) {
+        CollectionProvider.getInstance()
+            .upgradeStatisticForTheme(_chosenThemes[themeCounter]);
         themeCounter++;
         phraseCardsCounter = 0;
         currentPhraseCard =
             totalCollection[_chosenThemes[themeCounter]]![phraseCardsCounter];
         if (!currentPhraseCard.isActive) getNextPhraseCard();
-        print(chosenThemes[themeCounter]);
+        print(_chosenThemes[themeCounter]);
         currentPhraseCard.printPhraseCard();
         return currentPhraseCard;
       } else {
+        CollectionProvider.getInstance()
+            .upgradeStatisticForTheme(_chosenThemes[themeCounter]);
         currentPhraseCard = emptyPhraseCard;
         currentPhraseCard.printPhraseCard();
         return currentPhraseCard;
