@@ -5,6 +5,8 @@ import 'package:bubonelka/pages/edit_phrasecard_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
+import '../rutes.dart';
+
 class FavoritePhrasesPage extends StatefulWidget {
   @override
   _FavoritePhrasesPageState createState() => _FavoritePhrasesPageState();
@@ -137,7 +139,9 @@ class _FavoritePhrasesPageState extends State<FavoritePhrasesPage> {
             padding: const EdgeInsets.all(16.0),
             child: FloatingActionButton.extended(
               onPressed: () {
-                // Add logic to start learning with chosen themes
+                List<String> chosenThemes = [favoritePhrasesSet];
+                CollectionProvider.getInstance().chosenThemes = chosenThemes ;
+                Navigator.pushNamed(context, learningPageRoute);
               },
               label: Text('Начать занятие'),
               icon: Icon(Icons.play_arrow),

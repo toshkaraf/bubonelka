@@ -5,4 +5,6 @@ const themePageRoute = '/theme_page/';
 const themeListPageRoute = '/theme_list_page/';
 const chooseThemePageRoute = '/_choose_theme_page/';
 const favoritePhrasesPage = '/_favorite_page/';
+const playlistsListPage = '/_playlists_list_page/';
+const playlistPage = '/_playlist_page/';
 

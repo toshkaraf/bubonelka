@@ -2,6 +2,7 @@ import 'package:bubonelka/pages/choose_theme.dart';
 import 'package:bubonelka/pages/favorite_page.dart';
 import 'package:bubonelka/pages/learning_page.dart';
 import 'package:bubonelka/pages/loading_screen.dart';
+import 'package:bubonelka/pages/playlists_list%20_page.dart';
 import 'package:bubonelka/pages/start_page.dart';
 import 'package:bubonelka/pages/theme_list_page.dart';
 import 'package:bubonelka/rutes.dart';
@@ -24,7 +25,8 @@ class MyApp extends StatelessWidget {
         themeListPageRoute: (context) => ThemesListPage(),
         learningPageRoute: (context) => LearningPage(),
         chooseThemePageRoute: (context) => ChooseThemePage(),
-        favoritePhrasesPage:(context) => FavoritePhrasesPage(),
+        favoritePhrasesPage: (context) => FavoritePhrasesPage(),
+        playlistsListPage: (context) => PlaylistsListPage(),
       },
     );
   }

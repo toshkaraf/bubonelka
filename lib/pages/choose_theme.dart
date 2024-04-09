@@ -30,7 +30,9 @@ class _ChooseThemePageState extends State<ChooseThemePage> {
       } else {
         setState(() {
           filteredThemes = listOfThemes
-              .where((theme) => theme.toLowerCase().contains(_filterController.text.toLowerCase()))
+              .where((theme) => theme
+                  .toLowerCase()
+                  .contains(_filterController.text.toLowerCase()))
               .toList();
         });
       }
@@ -135,8 +137,11 @@ class _ChooseThemePageState extends State<ChooseThemePage> {
               onPressed: () {
                 final playlistName = _playlistNameController.text;
                 _playlistNameController.clear();
-                if (playlistName.isNotEmpty) {
-                  CollectionProvider.getInstance().playlists = chosenThemes;
+                if (playlistName.isNotEmpty && chosenThemes.isNotEmpty) {
+                  // Создаем новый список для данного плейлиста
+                  final newChosenThemes = List<String>.from(chosenThemes);
+                  CollectionProvider.getInstance()
+                      .addToPlaylists(playlistName, newChosenThemes);
                   Navigator.pop(context);
                 }
               },

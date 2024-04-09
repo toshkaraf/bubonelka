@@ -15,7 +15,7 @@ class CollectionProvider {
   Map<String, List<PhraseCard>> totalCollection = {};
   Map<String, ThemeClass> mapOfThemes = {};
   List<String> _chosenThemes = [];
-  List<String> _playlists = [];
+  Map<String, List<String>> mapOfPlaylists = {};
 
   Future<void> initializeCollectionProvider(String filePath) async {
     try {
@@ -51,10 +51,14 @@ class CollectionProvider {
     return mapOfThemes.keys.toList();
   }
 
-  List<String> get playlists => _playlists;
+  Map<String, List<String>> get playlistsMap => mapOfPlaylists;
 
-  set playlists(List<String> playlists) {
-    _playlists = playlists;
+  void addToPlaylists(String nameOfPlaylist, List<String> themesNames) {
+    mapOfPlaylists[nameOfPlaylist] = themesNames;
+  }
+
+  void deleteThemeOutOfPlaylist(String nameOfPlaylist, String themeName) {
+    mapOfPlaylists[nameOfPlaylist]?.remove(themeName);
   }
 
   List<String> get chosenThemes => _chosenThemes;
@@ -108,5 +112,13 @@ class CollectionProvider {
 
   void deleteTheme(String themeNameTranslation) {
     mapOfThemes.remove(themeNameTranslation);
+  }
+
+  void deleteplaylist(String themeNameTranslation) {
+    mapOfPlaylists.remove(themeNameTranslation);
+  }
+
+  void setChosenThemesFromPlaylist(String playlistName) {
+    chosenThemes = mapOfPlaylists[playlistName] ?? [];
   }
 }

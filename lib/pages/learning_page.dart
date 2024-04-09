@@ -227,14 +227,9 @@ class _LearningPageState extends State<LearningPage> {
 
   void _showFavoriteSnackbar(BuildContext context) {
     final snackBar = SnackBar(
-      content: Text('Фраза добавлена в Избранное'),
-      action: SnackBarAction(
-        label: 'Открыть',
-        onPressed: () {
-          // Действие при нажатии на кнопку "Открыть"
-          // Можно добавить переход на экран "Избранное"
-        },
-      ),
+      content: Text(
+          'Фраза добавлена в "Избранное". Если хотите ее оттуда удалить войдите в раздел "Избранное"'),
+      duration: Duration(seconds: 1),
     );
 
     ScaffoldMessenger.of(context).showSnackBar(snackBar);
@@ -323,8 +318,6 @@ class TransparentIconButton extends StatelessWidget {
     );
   }
 }
-
-// Виджет RoundedSwitch
 
 class RoundedSwitch extends StatelessWidget {
   final bool value; // Значение переключателя

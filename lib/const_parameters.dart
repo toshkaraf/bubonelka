@@ -7,7 +7,7 @@ const String csvFileOfThemesNew = 'themes_new.csv';
 
 const String noPath = '';
 
-const String favoritePhrasesSet = 'Favoriten';
+const String favoritePhrasesSet = 'Избранное';
 
 // for reading und parsing csv
 const String themeConst = 'Тема##';
@@ -20,7 +20,7 @@ PhraseCard emptyPhraseCard = PhraseCard(
         List.filled(1, 'Фраз для изучения больше нет! Выбери новые темы.'),
     germanPhrase: List.filled(
         1, 'Es gibt keine Phrasen mehr zu lernen! Wählen Sie neue Themen.'),
-        isActive: true);
+    isActive: true);
 
 PhraseCard neutralPhraseCard = PhraseCard(
     themeNameTranslation: "",
@@ -32,5 +32,3 @@ const int delayBeforGermanPhraseInSeconds = 5;
 
 const String editPhrasePageName = 'Редактируем фразы';
 const String createPhrasePageName = 'Добавляем фразы';
-
-
