@@ -98,79 +98,75 @@ class CsvDataManager {
 
     for (var row in csvData) {
       // Check if the row has enough data to create a PhraseCard object
-      if (row.length >= 20) {
-        if (row[0] == playListConstForCSV) {
-          String playlistName =
-              row[1] != null && row[1].trim().isNotEmpty ? row[1] : '';
-          List<String> playlist = [];
-          for (int i = 0; i < maxNumberOfThemesInPlaylist; i++) {
-            if (row[i + 2] != null || row[i + 2].trim().isNotEmpty) {
-              playlist[i] = row[i + 2];
-            }
-          }
-          mapOfPlaylists[playlistName] = playlist;
-        } else if (row[0] == themeConstForCSV) {
-          //create object Thema
-          String themeNameTranslation =
-              row[1] != null && row[1].trim().isNotEmpty ? row[1] : '';
-          String themeNameGerman =
-              row[2] != null && row[2].trim().isNotEmpty ? row[2] : '';
-          int numberOfRepetition = row[3] != null && row[3].trim().isNotEmpty
-              ? int.parse(row[3])
-              : 0;
-          DateTime? timeOfLastRepetition =
-              row[4] != null && row[4].trim().isNotEmpty
-                  ? DateTime.tryParse(row[4])
-                  : null;
-          ThemeClass theme = ThemeClass(
-              themeNameTranslation: themeNameTranslation,
-              themeName: themeNameGerman,
-              numberOfRepetition: numberOfRepetition,
-              timeOfLastRepetition: timeOfLastRepetition);
 
-          currentThemeName = themeNameTranslation;
-          mapOfThemes[currentThemeName] = theme;
-          totalCollection[currentThemeName] = [];
-        } else {
-          // Parse CSV data and create PhraseCard objects
-          List<String> translationPhrases = [
-            row[1] != null && row[1].trim().isNotEmpty ? row[1] : '',
-            row[2] != null && row[2].trim().isNotEmpty ? row[2] : '',
-            row[3] != null && row[3].trim().isNotEmpty ? row[3] : '',
-          ];
-          List<String> germanPhrases = [
-            row[4] != null && row[4].trim().isNotEmpty ? row[4] : '',
-            row[5] != null && row[5].trim().isNotEmpty ? row[5] : '',
-            row[6] != null && row[6].trim().isNotEmpty ? row[6] : '',
-          ];
-          bool isActive = row[7] != null && row[7].trim().isNotEmpty
-              ? bool.parse(row[7])
-              : true;
-
-          PhraseCard phraseCard = PhraseCard(
-              themeNameTranslation: currentThemeName,
-              translationPhrase: translationPhrases,
-              germanPhrase: germanPhrases,
-              isActive: isActive);
-
-          // add Theme names and sort PhraseCards to dictionaries
-          // if (!phraseCardsMap.containsKey(themeNameTranslation)) {
-          //   phraseCardsMap[themeNameTranslation] = {};
-          // }
-
-          if (totalCollection.containsKey(currentThemeName)) {
-            totalCollection[currentThemeName]!.add(phraseCard);
-          } else {
-            totalCollection[currentThemeName] = [
-              phraseCard
-            ]; // Создать новый список с PhraseCard и добавить его в totalCollection
+      if (row[0] == playListConstForCSV) {
+        String playlistName =
+            row[1] != null && row[1].trim().isNotEmpty ? row[1] : '';
+        List<String> playlist = [];
+        for (int i = 2; i < row.length; i++) {
+          if (row[i] != null && row[i].trim().isNotEmpty) {
+            playlist.add(row[i]);
           }
         }
+        mapOfPlaylists[playlistName] = playlist;
+      } else if (row[0] == themeConstForCSV) {
+        //create object Thema
+        String themeNameTranslation =
+            row[1] != null && row[1].trim().isNotEmpty ? row[1] : '';
+        String themeNameGerman =
+            row[2] != null && row[2].trim().isNotEmpty ? row[2] : '';
+        int numberOfRepetition =
+            row[3] != null && row[3].trim().isNotEmpty ? int.parse(row[3]) : 0;
+        DateTime? timeOfLastRepetition =
+            row[4] != null && row[4].trim().isNotEmpty
+                ? DateTime.tryParse(row[4])
+                : null;
+        ThemeClass theme = ThemeClass(
+            themeNameTranslation: themeNameTranslation,
+            themeName: themeNameGerman,
+            numberOfRepetition: numberOfRepetition,
+            timeOfLastRepetition: timeOfLastRepetition);
+
+        currentThemeName = themeNameTranslation;
+        mapOfThemes[currentThemeName] = theme;
+        totalCollection[currentThemeName] = [];
       } else {
-        // Handle the case when the row doesn't have enough data for a PhraseCard object
-        print('Error: Invalid CSV row data: $row');
+        // Parse CSV data and create PhraseCard objects
+        List<String> translationPhrases = [
+          row[1] != null && row[1].trim().isNotEmpty ? row[1] : '',
+          row[2] != null && row[2].trim().isNotEmpty ? row[2] : '',
+          row[3] != null && row[3].trim().isNotEmpty ? row[3] : '',
+        ];
+        List<String> germanPhrases = [
+          row[4] != null && row[4].trim().isNotEmpty ? row[4] : '',
+          row[5] != null && row[5].trim().isNotEmpty ? row[5] : '',
+          row[6] != null && row[6].trim().isNotEmpty ? row[6] : '',
+        ];
+        bool isActive = row[7] != null && row[7].trim().isNotEmpty
+            ? bool.parse(row[7])
+            : true;
+
+        PhraseCard phraseCard = PhraseCard(
+            themeNameTranslation: currentThemeName,
+            translationPhrase: translationPhrases,
+            germanPhrase: germanPhrases,
+            isActive: isActive);
+
+        // add Theme names and sort PhraseCards to dictionaries
+        // if (!phraseCardsMap.containsKey(themeNameTranslation)) {
+        //   phraseCardsMap[themeNameTranslation] = {};
+        // }
+
+        if (totalCollection.containsKey(currentThemeName)) {
+          totalCollection[currentThemeName]!.add(phraseCard);
+        } else {
+          totalCollection[currentThemeName] = [
+            phraseCard
+          ]; // Создать новый список с PhraseCard и добавить его в totalCollection
+        }
       }
     }
+
     if (isThisRestoreFromFile) {
       CollectionProvider.getInstance().mapOfThemes.clear();
       isThisRestoreFromFile = false;
@@ -183,7 +179,7 @@ class CsvDataManager {
 
   Future<void> uploadCsvData(String filePath) async {
     List<List<dynamic>> allCsvData = _convertDataToCsvData();
-    print(allCsvData.toString());
+    print('загрузка' + allCsvData.toString());
     await _uploadAllCsvData(allCsvData, filePath);
 
     // // Проверяем, нужно ли сохранить в резервную копию (сохраняется каждый второй раз вызова метода )
@@ -245,6 +241,7 @@ class CsvDataManager {
             phrase.germanPhrase[0],
             phrase.germanPhrase[1],
             phrase.germanPhrase[2],
+            phrase.isActive,
           ]);
         }
       }
