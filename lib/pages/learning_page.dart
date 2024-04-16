@@ -154,7 +154,7 @@ class _LearningPageState extends State<LearningPage> {
 
   void _speakPhrases() async {
     await flutterTts.setLanguage('ru-RU');
-    await flutterTts.setSpeechRate(_speechRate);
+    await flutterTts.setSpeechRate(speechRateTranslation);
     await flutterTts.setPitch(1);
 
     setState(() {
@@ -180,7 +180,8 @@ class _LearningPageState extends State<LearningPage> {
     }
 
     await flutterTts.setLanguage('de-DE');
-    for (int i = 0; i < 3; i++) {
+    await flutterTts.setSpeechRate(_speechRate);
+    for (int i = 0; i < 7; i++) {
       for (String phrase in _currentPhrase.germanPhrase) {
         if (!_isPaused) {
           await flutterTts.speak(phrase);

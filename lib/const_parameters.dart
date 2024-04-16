@@ -38,3 +38,6 @@ const int delayBeforGermanPhraseInSeconds = 5;
 
 const String editPhrasePageName = 'Редактируем фразы';
 const String createPhrasePageName = 'Добавляем фразы';
+
+const   double speechRateTranslation = 0.5;
+

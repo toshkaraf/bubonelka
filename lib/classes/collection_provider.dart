@@ -96,7 +96,13 @@ class CollectionProvider {
             newPhraseCard;
       }
     } else {
-      totalCollection[newPhraseCard.themeNameTranslation]!.add(newPhraseCard);
+      if (totalCollection.containsKey(newPhraseCard.themeNameTranslation)) {
+        totalCollection[newPhraseCard.themeNameTranslation]!.add(newPhraseCard);
+      } else {
+        List<PhraseCard> listOfPhraseCards = [];
+        totalCollection[newPhraseCard.themeNameTranslation] = listOfPhraseCards;
+        totalCollection[newPhraseCard.themeNameTranslation]!.add(newPhraseCard);
+      }
     }
     saveData();
   }
