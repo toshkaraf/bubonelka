@@ -4,6 +4,7 @@ import 'package:bubonelka/classes/settings_and_state.dart';
 import 'package:bubonelka/const_parameters.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:translator_plus/translator_plus.dart';
 
 class EditPhraseCardPage extends StatefulWidget {
   PhraseCard phraseCard;
@@ -32,6 +33,7 @@ class _EditPhraseCardPageState extends State<EditPhraseCardPage> {
   final FlutterTts flutterTts = FlutterTts();
   SettingsAndState settingsAndState = SettingsAndState.getInstance();
   late String text;
+  bool _isTranslating = false;
 
   @override
   @override
@@ -168,6 +170,18 @@ class _EditPhraseCardPageState extends State<EditPhraseCardPage> {
                       controller: _translationPhraseController_1,
                       labelText: "Перевод фразы 1",
                     ),
+                    ElevatedButton(
+                      onPressed: () async {
+                        if (!_isTranslating) {
+                          await _translateWithGoogle(
+                              _germanPhraseController_1, 1);
+                        }
+                      },
+                      child: Text(
+                        _isTranslating ? "Переводим..." : "Перевести",
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                    ),
                     _buildTextField(
                       controller: _germanPhraseController_2,
                       labelText: "Немецкая фраза 2",
@@ -176,6 +190,18 @@ class _EditPhraseCardPageState extends State<EditPhraseCardPage> {
                       controller: _translationPhraseController_2,
                       labelText: "Перевод фразы 2",
                     ),
+                    ElevatedButton(
+                      onPressed: () async {
+                        if (!_isTranslating) {
+                          await _translateWithGoogle(
+                              _germanPhraseController_2, 2);
+                        }
+                      },
+                      child: Text(
+                        _isTranslating ? "Переводим..." : "Перевести",
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                    ),
                     _buildTextField(
                       controller: _germanPhraseController_3,
                       labelText: "Немецкая фраза 3",
@@ -183,6 +209,18 @@ class _EditPhraseCardPageState extends State<EditPhraseCardPage> {
                     _buildTextField(
                       controller: _translationPhraseController_3,
                       labelText: "Перевод фразы 3",
+                    ),
+                    ElevatedButton(
+                      onPressed: () async {
+                        if (!_isTranslating) {
+                          await _translateWithGoogle(
+                              _germanPhraseController_3, 3);
+                        }
+                      },
+                      child: Text(
+                        _isTranslating ? "Переводим..." : "Перевести",
+                        style: const TextStyle(fontSize: 16),
+                      ),
                     ),
                   ],
                 ),
@@ -264,5 +302,43 @@ class _EditPhraseCardPageState extends State<EditPhraseCardPage> {
     collectionProvider.deletePhraseCard(widget.phraseCard);
     widget.phraseCard.isDeleted = true;
     Navigator.pop(context, widget.phraseCard);
+  }
+
+  Future<void> _translateWithGoogle(
+      TextEditingController germanPhraseController, int numberOfField) async {
+    if (germanPhraseController.text.isNotEmpty) {
+      setState(() {
+        _isTranslating = true;
+      });
+
+      final translator = GoogleTranslator();
+
+      try {
+        final translation = await translator.translate(
+          germanPhraseController.text,
+          to: 'ru',
+        );
+
+        switch (numberOfField) {
+          case 1:
+            setState(() {
+              _translationPhraseController_1.text = translation.text;
+              _isTranslating = false;
+            });
+          case 2:
+            setState(() {
+              _translationPhraseController_2.text = translation.text;
+              _isTranslating = false;
+            });
+          case 3:
+            setState(() {
+              _translationPhraseController_3.text = translation.text;
+              _isTranslating = false;
+            });
+        }
+      } catch (e) {
+        _showSnackBar("Что-то пошло не так...");
+      }
+    }
   }
 }
