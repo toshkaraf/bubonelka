@@ -181,7 +181,9 @@ class _LearningPageState extends State<LearningPage> {
 
     await flutterTts.setLanguage('de-DE');
     await flutterTts.setSpeechRate(_speechRate);
-    for (int i = 0; i < 7; i++) {
+    int numberOfRepetition = 7;
+    if (_currentPhrase == emptyPhraseCard) {numberOfRepetition = 1;}
+    for (int i = 0; i < numberOfRepetition; i++) {
       for (String phrase in _currentPhrase.germanPhrase) {
         if (!_isPaused) {
           await flutterTts.speak(phrase);
