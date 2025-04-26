@@ -1,0 +1,5 @@
+Корневой каталог, Root
+Повелительное наклонение,Imperativ,imperativ.csv,A,1
+Cоюзы простые, Konjunktionen,konjunktionen/index.csv,A,200
+Cоюзы составные, Verbundene Konjunktionen,verbundene_konjunktionen/index.csv,B,200
+Семьи слов, Wortfamilien,wortfamilien/index.csv,AB,500

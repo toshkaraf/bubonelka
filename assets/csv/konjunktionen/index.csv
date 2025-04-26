@@ -1,0 +1,6 @@
+Союзы: Konjunktionen
+"перед тем как, как только","bevor, sobald",konjunktionen/bevor_sobald.csv,A,20
+"до тех пор как/ с тех пор как","bis, seitdem",konjunktionen/bis_seitdem.csv,A,10
+в то время как,wärend,konjunktionen/wärend.csv,A,40
+поскольку,"weil, denn",konjunktionen/weil_denn.csv,A,50
+"тем что/так что","indem, so dass",konjunktionen/indem_so_dass.csv,A,60

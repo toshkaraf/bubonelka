@@ -1,8 +1,6 @@
-
-import 'package:bubonelka/classes/collection_provider.dart';
-import 'package:bubonelka/const_parameters.dart';
-import 'package:bubonelka/pages/start_page.dart';
 import 'package:flutter/material.dart';
+import 'package:bubonelka/utilites/database_helper.dart';
+import 'package:bubonelka/pages/start_page.dart';
 
 class LoadingScreen extends StatefulWidget {
   @override
@@ -10,7 +8,7 @@ class LoadingScreen extends StatefulWidget {
 }
 
 class _LoadingScreenState extends State<LoadingScreen> {
-  late CollectionProvider collectionProvider;
+  late DatabaseHelper dbHelper;
 
   @override
   void initState() {
@@ -18,77 +16,52 @@ class _LoadingScreenState extends State<LoadingScreen> {
     _loadDataAndNavigate();
   }
 
-  // Метод для загрузки данных и перехода на MainPage
   Future<void> _loadDataAndNavigate() async {
-    // Здесь можно добавить задержку, чтобы показать экран загрузки в течение некоторого времени
-    await Future.delayed(const Duration(seconds: 1));
+    await Future.delayed(Duration(milliseconds: 500)); // Для UI
 
     try {
-      // Загрузка настроек
-      // await SettingsAndStateManager().loadSettings();
+      dbHelper = DatabaseHelper();
+      bool isInitialized = await dbHelper.isInitialized();
 
-      // Загрузка данных CollectionProvider
-      collectionProvider = CollectionProvider.getInstance();
-
-      try {
-        collectionProvider.initializeCollectionProvider(noPath);
-      } on Exception catch (e) {
-        // Обработка исключения
-        print('$e');
-        // Выводите сообщение в снекбар или другой способ уведомления
-        _showSnackBar('$e');
-      } catch (error) {
-        // Обработка ошибок
-        print('Error: $error');
+      if (!isInitialized) {
+        await dbHelper.loadInitialData();
       }
 
-      // После загрузки данных перейдите на главный экран MainPage
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => StartPage()),
+        MaterialPageRoute(builder: (_) => StartPage()),
       );
     } catch (error) {
-      // Если возникла ошибка, выведите ее на экран
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Ошибка'),
-          content: Text('Произошла ошибка при загрузке данных: $error'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: const Text('Ок'),
-            ),
-          ],
-        ),
-      );
+      _showErrorDialog(error.toString());
     }
   }
 
-  void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Ошибка'),
+        content: Text('Ошибка при загрузке: $message'),
+        actions: [
+          TextButton(
+            child: const Text('Ок'),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ],
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Ваш логотип или изображение здесь
-            // Image.asset(worm1_picture),
-            // Индикатор загрузки
-            CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(
-                    Colors.blue)), // Здесь можно указать нужный цвет
+            CircularProgressIndicator(),
+            const SizedBox(height: 20),
+            const Text('Загрузка данных...'),
           ],
         ),
       ),

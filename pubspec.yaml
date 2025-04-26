@@ -34,6 +34,10 @@ dependencies:
   csv: ^6.0.0
   flutter_tts: ^4.0.2
   translator_plus: ^1.0.1
+  sqflite: ^2.3.2
+  path: ^1.8.3
+  shared_preferences: ^2.2.2
+  webview_flutter: ^4.4.1
 
 
   # The following adds the Cupertino Icons font to your application.
@@ -65,6 +69,12 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/phrase_collection.csv
+    - assets/csv/
+    - assets/csv/konjunktionen/
+    - assets/csv/verbundene_konjunktionen/
+    - assets/csv/wortfamilien/
+    - assets/csv/wortfamilien/geben/
+    - assets/csv/wortfamilien/nehmen/
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see

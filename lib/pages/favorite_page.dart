@@ -1,163 +1,111 @@
-import 'package:bubonelka/classes/collection_provider.dart';
-import 'package:bubonelka/classes/phrase_card.dart';
-import 'package:bubonelka/const_parameters.dart';
-import 'package:bubonelka/pages/edit_phrasecard_page.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_tts/flutter_tts.dart';
+// import 'package:flutter/material.dart';
+// import 'package:bubonelka/rutes.dart';
+// import 'package:bubonelka/pages/edit_phrasecard_page.dart';
+// import 'package:bubonelka/const_parameters.dart';
+// import 'package:bubonelka/classes/settings_and_state.dart';
+// import 'package:bubonelka/utilites/database_helper.dart';
+// import 'package:bubonelka/classes/phrase_card.dart';
 
-import '../rutes.dart';
+// class FavoritePhrasesPage extends StatefulWidget {
+//   @override
+//   _FavoritePhrasesPageState createState() => _FavoritePhrasesPageState();
+// }
 
-class FavoritePhrasesPage extends StatefulWidget {
-  @override
-  _FavoritePhrasesPageState createState() => _FavoritePhrasesPageState();
-}
+// class _FavoritePhrasesPageState extends State<FavoritePhrasesPage> {
+//   List<PhraseCard> phraseCardsList = [];
+//   bool isTranslationFirst = false;
 
-class _FavoritePhrasesPageState extends State<FavoritePhrasesPage> {
-  final FlutterTts flutterTts = FlutterTts();
-  CollectionProvider collectionProvider = CollectionProvider.getInstance();
-  List<PhraseCard> phraseCardsList = [];
-  bool isTranslationFirst = false;
-  double textGap = 3.0; // Уменьшаем расстояние между словом и переводом
+//   @override
+//   void initState() {
+//     super.initState();
+//     _loadFavoritePhrases();
+//   }
 
-  @override
-  void initState() {
-    super.initState();
-    phraseCardsList =
-        collectionProvider.getListOfPhrasesForTheme(favoritePhrasesSet) ?? [];
-  }
+//   Future<void> _loadFavoritePhrases() async {
+//     final db = DatabaseHelper();
+//     final all = await db.getPhrasesByThemeNameTranslation(favoritePhrasesSet);
+//     final unique = {
+//       for (var phrase in all) '${phrase.germanPhrases.join()}-${phrase.translationPhrases.join()}': phrase
+//     }.values.toList();
+//     setState(() => phraseCardsList = unique);
+//   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Избранное'),
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
-      ),
-      body: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              const Text(
-                'сначала перевод',
-                style: TextStyle(fontSize: 16, color: Colors.grey),
-              ),
-              Checkbox(
-                value: isTranslationFirst,
-                onChanged: (value) {
-                  setState(() {
-                    isTranslationFirst = value!;
-                  });
-                },
-                activeColor: Colors.blue,
-              ),
-            ],
-          ),
-          Expanded(
-            child: phraseCardsList.isEmpty
-                ? Center(
-                    child: Text(
-                      'Список пуст',
-                      style: TextStyle(fontSize: 18),
-                    ),
-                  )
-                : ListView.separated(
-                    itemCount: phraseCardsList.length,
-                    separatorBuilder: (context, index) => Divider(),
-                    itemBuilder: (context, index) {
-                      PhraseCard phraseCard = phraseCardsList[index];
-                      String translateText = '';
-                      String getmanText = '';
+//   Future<void> _deletePhraseCard(PhraseCard phraseCard) async {
+//     final db = DatabaseHelper();
+//     await db.deletePhraseFromFavorites(phraseCard);
+//     _loadFavoritePhrases();
+//   }
 
-                      for (int i = 0; i < 3; i++) {
-                        if (phraseCard.translationPhrase[i] != '') {
-                          translateText +=
-                              '${phraseCard.translationPhrase[i]}\n\n';
-                        }
-                        if (phraseCard.germanPhrase[i] != '') {
-                          getmanText += '${phraseCard.germanPhrase[i]}\n\n';
-                        }
-                      }
-                      String frontText =
-                          isTranslationFirst ? translateText : getmanText;
-                      String backText =
-                          isTranslationFirst ? getmanText : translateText;
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(title: const Text('Избранное')),
+//       body: Column(
+//         children: [
+//           Padding(
+//             padding: const EdgeInsets.symmetric(horizontal: 16.0),
+//             child: Row(
+//               mainAxisAlignment: MainAxisAlignment.end,
+//               children: [
+//                 const Text('сначала перевод', style: TextStyle(color: Colors.grey)),
+//                 Checkbox(
+//                   value: isTranslationFirst,
+//                   onChanged: (val) => setState(() => isTranslationFirst = val!),
+//                 )
+//               ],
+//             ),
+//           ),
+//           Expanded(
+//             child: phraseCardsList.isEmpty
+//                 ? const Center(child: Text('Список пуст', style: TextStyle(fontSize: 18)))
+//                 : ListView.separated(
+//                     itemCount: phraseCardsList.length,
+//                     separatorBuilder: (context, index) => const Divider(),
+//                     itemBuilder: (context, index) {
+//                       final phrase = phraseCardsList[index];
+//                       final germanText = phrase.germanPhrases.join('\n\n');
+//                       final translationText = phrase.translationPhrases.join('\n\n');
+//                       final front = isTranslationFirst ? translationText : germanText;
+//                       final back = isTranslationFirst ? germanText : translationText;
 
-                      return ListTile(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => EditPhraseCardPage(
-                                widgetName: editPhrasePageName,
-                                phraseCard: phraseCard,
-                                themeNameTranslation: favoritePhrasesSet,
-                              ),
-                            ),
-                          ).then((editedPhraseCard) {
-                            setState(() {
-                              phraseCardsList =
-                                  collectionProvider.getListOfPhrasesForTheme(
-                                          favoritePhrasesSet) ??
-                                      [];
-                            });
-                          });
-                        },
-                        title: Text(
-                          frontText,
-                          style: TextStyle(
-                            fontSize: 16.0,
-                            color: Colors
-                                .black, // Set the German word text color to black
-                            fontWeight: FontWeight.bold, // Remove bold
-                          ),
-                        ),
-                        subtitle: Text(
-                          backText,
-                          style: TextStyle(
-                            fontSize: 14.0,
-                            color: Colors
-                                .black, // Set the translation text color to black
-                          ),
-                        ),
-                        trailing: IconButton(
-                          onPressed: () {
-                            _deletePhraseCard(phraseCard);
-                          },
-                          icon: Icon(Icons.delete),
-                        ),
-                      );
-                    },
-                  ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: FloatingActionButton.extended(
-              onPressed: () {
-                List<String> chosenThemes = [favoritePhrasesSet];
-                CollectionProvider.getInstance().chosenThemes = chosenThemes ;
-                Navigator.pushNamed(context, learningPageRoute);
-              },
-              label: Text('Начать занятие'),
-              icon: Icon(Icons.play_arrow),
-              heroTag: 'start_learning_hero',
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _deletePhraseCard(PhraseCard phraseCard) {
-    collectionProvider.deletePhraseCard(phraseCard);
-    setState(() {
-      phraseCardsList =
-          collectionProvider.getListOfPhrasesForTheme(favoritePhrasesSet) ?? [];
-    });
-  }
-}
+//                       return ListTile(
+//                         title: Text(front, style: const TextStyle(fontWeight: FontWeight.bold)),
+//                         subtitle: Text(back),
+//                         trailing: IconButton(
+//                           icon: const Icon(Icons.delete),
+//                           onPressed: () => _deletePhraseCard(phrase),
+//                         ),
+//                         onTap: () async {
+//                           await Navigator.push(
+//                             context,
+//                             MaterialPageRoute(
+//                               builder: (context) => EditPhraseCardPage(
+//                                 widgetName: editPhrasePageName,
+//                                 phraseCard: phrase,
+//                                 themeNameTranslation: favoritePhrasesSet,
+//                               ),
+//                             ),
+//                           );
+//                           _loadFavoritePhrases();
+//                         },
+//                       );
+//                     },
+//                   ),
+//           ),
+//           Padding(
+//             padding: const EdgeInsets.all(16.0),
+//             child: FloatingActionButton.extended(
+//               onPressed: () {
+//                 SettingsAndState.getInstance().chosenThemes = [favoritePhrasesSet];
+//                 Navigator.pushNamed(context, learningPageRoute);
+//               },
+//               label: const Text('Начать занятие'),
+//               icon: const Icon(Icons.play_arrow),
+//               heroTag: 'start_learning_hero',
+//             ),
+//           ),
+//         ],
+//       ),
+//     );
+//   }
+// }

@@ -1,134 +1,128 @@
-import 'package:bubonelka/classes/collection_provider.dart';
-import 'package:bubonelka/classes/phrase_card.dart';
-import 'package:bubonelka/const_parameters.dart';
-import 'package:bubonelka/pages/current_phrases_set.dart';
+// LearningPage, обновлённая для работы с базой данных
+
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:bubonelka/classes/phrase_card.dart';
+import 'package:bubonelka/utilites/database_helper.dart';
+import 'package:bubonelka/const_parameters.dart';
 
 class LearningPage extends StatefulWidget {
+  final List<String> selectedThemeNames;
+
+  const LearningPage({super.key, required this.selectedThemeNames});
+
   @override
-  _LearningPageState createState() => _LearningPageState();
+  State<LearningPage> createState() => _LearningPageState();
 }
 
 class _LearningPageState extends State<LearningPage> {
-  CurrentPhrasesSet currentPhrasesSet = CurrentPhrasesSet();
-  bool isGerman = false;
-  bool _isPaused = false;
-  double _speechRate = 0.5;
-  bool _isPauseButtonActive = false; // upper menu
-  PhraseCard _currentPhrase = neutralPhraseCard;
-  List<String> _currentTextOnScreen = [];
+  final FlutterTts flutterTts = FlutterTts();
+  final DatabaseHelper dbHelper = DatabaseHelper();
 
-  late FlutterTts flutterTts;
+  List<PhraseCard> _phrases = [];
+  int _currentIndex = 0;
+  bool _isPaused = false;
+  bool _isPauseBetween = false;
+  bool _isGerman = false;
+  double _speechRate = 0.5;
 
   @override
   void initState() {
     super.initState();
-    flutterTts = FlutterTts();
-    getNextPhraseCard();
+    _loadPhrases();
+  }
+
+  Future<void> _loadPhrases() async {
+    List<PhraseCard> all = [];
+    for (final themeName in widget.selectedThemeNames) {
+      final list = await dbHelper.getPhrasesByThemeName(themeName);
+      all.addAll(list);
+    }
+    setState(() {
+      _phrases = all;
+    });
+    if (_phrases.isNotEmpty) {
+      _speakPhrases();
+    }
   }
 
   @override
   void dispose() {
-    flutterTts.pause();
+    flutterTts.stop();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final current = _phrases.isEmpty ? emptyPhraseCard : _phrases[_currentIndex];
+    final visiblePhrases = _isGerman ? current.germanPhrases : current.translationPhrases;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('Bubonelka'),
+        title: const Text('Bubonelka'),
         actions: [
           IconButton(
-            icon: Icon(Icons.help_outline),
-            color: Colors.black,
-            onPressed: () {
-              // Add help action
-            },
+            icon: const Icon(Icons.help_outline),
+            onPressed: () {},
           ),
         ],
       ),
       body: Column(
         children: [
-          SizedBox(height: 20),
+          const SizedBox(height: 20),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              RoundedSwitch(
-                value: _isPauseButtonActive,
-                onChanged: (newValue) {
-                  setState(() {
-                    _isPauseButtonActive =
-                        !_isPauseButtonActive; // Устанавливаем новое значение паузы/воспроизведения
-                  });
+              Switch(
+                value: _isPauseBetween,
+                onChanged: (v) => setState(() => _isPauseBetween = v),
+              ),
+              IconButton(
+                icon: const Icon(Icons.speed),
+                onPressed: () => _showSpeedDialog(context),
+              ),
+              IconButton(
+                icon: const Icon(Icons.star),
+                onPressed: () async {
+                  await dbHelper.addToFavorites(current);
+                  _showSnackbar('Фраза добавлена в "Избранное".');
                 },
               ),
-              TransparentIconButton(
-                  icon: Icons.speed,
-                  onPressed: () {
-                    _showSpeedDialog(context);
-                  }),
-              TransparentIconButton(icon: Icons.book, onPressed: () {}),
-              TransparentIconButton(
-                  icon: Icons.star,
-                  onPressed: () {
-                    _currentPhrase.themeNameTranslation = favoritePhrasesSet;
-                    CollectionProvider.getInstance()
-                        .getTotalCollection()[favoritePhrasesSet]!
-                        .add(_currentPhrase);
-                    _showFavoriteSnackbar(context);
-                  }),
             ],
           ),
-          SizedBox(height: 20),
-          _buildPhrases(),
-          Spacer(),
+          const SizedBox(height: 20),
+          ...visiblePhrases.map((p) => Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Text(p, style: const TextStyle(fontSize: 20), textAlign: TextAlign.center),
+          )),
+          const Spacer(),
           Container(
-            padding: EdgeInsets.all(20),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: Colors.grey[200],
-              borderRadius: BorderRadius.only(
+              borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(20),
                 topRight: Radius.circular(20),
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.5),
-                  spreadRadius: 2,
-                  blurRadius: 5,
-                  offset: Offset(0, 3),
-                ),
-              ],
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                RoundedIconButton(
-                    icon: Icons.skip_previous,
-                    onPressed: () {
-                      _isPaused = true;
-                      getPreviousPhraseCard();
-                    }),
-                RoundedIconButton(
-                    icon: _isPaused ? Icons.play_arrow : Icons.pause,
-                    onPressed: () {
-                      setState(() {
-                        _isPaused = !_isPaused;
-                      }); // Переключаем состояние паузы/воспроизведения
-                      if (_isPaused) {
-                        flutterTts.pause();
-                      } else {
-                        _speakPhrases();
-                      }
-                    }),
-                RoundedIconButton(
-                    icon: Icons.skip_next,
-                    onPressed: () {
-                      _isPaused = true;
-                      _speakPhrases();
-                      getNextPhraseCard();
-                    }),
+                IconButton(
+                  icon: const Icon(Icons.skip_previous),
+                  onPressed: _previousPhrase,
+                ),
+                IconButton(
+                  icon: Icon(_isPaused ? Icons.play_arrow : Icons.pause),
+                  onPressed: () {
+                    setState(() => _isPaused = !_isPaused);
+                    if (!_isPaused) _speakPhrases();
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.skip_next),
+                  onPressed: _nextPhrase,
+                ),
               ],
             ),
           ),
@@ -137,77 +131,61 @@ class _LearningPageState extends State<LearningPage> {
     );
   }
 
-  Widget _buildPhrases() {
-    return Column(
-      children: _currentTextOnScreen.map((phrase) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Text(
-            phrase,
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 20),
-          ),
-        );
-      }).toList(),
-    );
-  }
+  Future<void> _speakPhrases() async {
+    if (_phrases.isEmpty) return;
+    final current = _phrases[_currentIndex];
+    _isGerman = false;
+    setState(() {});
 
-  void _speakPhrases() async {
     await flutterTts.setLanguage('ru-RU');
     await flutterTts.setSpeechRate(speechRateTranslation);
     await flutterTts.setPitch(1);
 
-    setState(() {
-      _currentTextOnScreen = _currentPhrase.translationPhrase;
-    });
-
-    for (String phrase in _currentPhrase.translationPhrase) {
-      if (!_isPaused) {
-        await flutterTts.speak(phrase);
-        await flutterTts.awaitSpeakCompletion(
-            true); // Дождаться окончания озвучивания текущей фразы
-      }
+    for (final phrase in current.translationPhrases) {
+      if (_isPaused) return;
+      await flutterTts.speak(phrase);
+      await flutterTts.awaitSpeakCompletion(true);
     }
 
-    if (_isPauseButtonActive) {
+    if (_isPauseBetween) {
       await Future.delayed(Duration(seconds: delayBeforGermanPhraseInSeconds));
     }
 
-    if (!_isPaused) {
-      setState(() {
-        _currentTextOnScreen = _currentPhrase.germanPhrase;
-      });
-    }
+    _isGerman = true;
+    setState(() {});
 
     await flutterTts.setLanguage('de-DE');
     await flutterTts.setSpeechRate(_speechRate);
-    int numberOfRepetition = 7;
-    if (_currentPhrase == emptyPhraseCard) {numberOfRepetition = 1;}
-    for (int i = 0; i < numberOfRepetition; i++) {
-      for (String phrase in _currentPhrase.germanPhrase) {
-        if (!_isPaused) {
-          await flutterTts.speak(phrase);
-          await flutterTts.awaitSpeakCompletion(true);
-        } // Дождаться окончания озвучивания текущей фразы
+
+    for (int i = 0; i < 7; i++) {
+      for (final phrase in current.germanPhrases) {
+        if (_isPaused) return;
+        await flutterTts.speak(phrase);
+        await flutterTts.awaitSpeakCompletion(true);
       }
     }
 
-    if (_currentPhrase != emptyPhraseCard && !_isPaused) {
-      getNextPhraseCard();
+    if (!_isPaused && _currentIndex < _phrases.length - 1) {
+      _nextPhrase();
     }
   }
 
-  void getNextPhraseCard() {
-    if (_currentPhrase != emptyPhraseCard) {
-      _currentPhrase = currentPhrasesSet.getNextPhraseCard();
-      // _isPaused = false;
+  void _nextPhrase() {
+    if (_currentIndex < _phrases.length - 1) {
+      setState(() {
+        _currentIndex++;
+        _isPaused = false;
+      });
       _speakPhrases();
     }
   }
 
-  void getPreviousPhraseCard() {
-    if (_currentPhrase != emptyPhraseCard) {
-      _currentPhrase = currentPhrasesSet.getPreviousPhraseCard();
+  void _previousPhrase() {
+    if (_currentIndex > 0) {
+      setState(() {
+        _currentIndex--;
+        _isPaused = false;
+      });
       _speakPhrases();
     }
   }
@@ -215,176 +193,27 @@ class _LearningPageState extends State<LearningPage> {
   void _showSpeedDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return SpeedSliderDialog(
-          initialValue: _speechRate,
-          onChanged: (double value) {
-            setState(() {
-              _speechRate = value;
-            });
-          },
-        );
-      },
-    );
-  }
-
-  void _showFavoriteSnackbar(BuildContext context) {
-    final snackBar = SnackBar(
-      content: Text(
-          'Фраза добавлена в "Избранное". Если хотите ее оттуда удалить войдите в раздел "Избранное"'),
-      duration: Duration(seconds: 1),
-    );
-
-    ScaffoldMessenger.of(context).showSnackBar(snackBar);
-  }
-}
-
-class SpeedSliderDialog extends StatefulWidget {
-  final double initialValue;
-  final ValueChanged<double>? onChanged;
-
-  SpeedSliderDialog({Key? key, required this.initialValue, this.onChanged})
-      : super(key: key);
-
-  @override
-  _SpeedSliderDialogState createState() => _SpeedSliderDialogState();
-}
-
-class _SpeedSliderDialogState extends State<SpeedSliderDialog> {
-  late double _tempSpeedRate;
-  final double minSpeed = 0.1; // Минимальное значение скорости
-  final double maxSpeed = 2.0; // Максимальное значение скорости
-
-  @override
-  void initState() {
-    super.initState();
-    _tempSpeedRate = widget.initialValue;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text('Выберите скорость'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Slider(
-            value: (_tempSpeedRate - minSpeed) *
-                    100 /
-                    (maxSpeed - minSpeed) *
-                    2.5 +
-                50,
-            min: 50,
-            max: 200,
-            divisions: 15, // С учетом диапазона от 50% до 200%
-            label: '${(_tempSpeedRate * 100).round()}%',
-            onChanged: (double value) {
-              setState(() {
-                _tempSpeedRate =
-                    (value - 50) / 2.5 / 100 * (maxSpeed - minSpeed) + minSpeed;
-              });
-            },
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () {
-            // Закрываем диалоговое окно и передаем новое значение скорости в родительский виджет
-            widget.onChanged?.call(_tempSpeedRate.clamp(minSpeed, maxSpeed));
-            Navigator.of(context).pop();
-          },
-          child: Text('Закрыть'),
+      builder: (ctx) => AlertDialog(
+        title: const Text('Выберите скорость'),
+        content: Slider(
+          value: _speechRate,
+          min: 0.1,
+          max: 2.0,
+          divisions: 20,
+          label: (_speechRate * 100).round().toString() + '%',
+          onChanged: (v) => setState(() => _speechRate = v),
         ),
-      ],
-    );
-  }
-}
-
-class TransparentIconButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onPressed;
-
-  const TransparentIconButton({
-    Key? key,
-    required this.icon,
-    required this.onPressed,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      icon: Icon(icon),
-      color: Colors.black,
-      iconSize: 35,
-      onPressed: onPressed,
-    );
-  }
-}
-
-class RoundedSwitch extends StatelessWidget {
-  final bool value; // Значение переключателя
-  final ValueChanged<bool>? onChanged; // Обратный вызов при изменении состояния
-
-  const RoundedSwitch({
-    Key? key,
-    required this.value,
-    required this.onChanged,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.5),
-            spreadRadius: 2,
-            blurRadius: 5,
-            offset: Offset(0, 3),
-          ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Закрыть'),
+          )
         ],
       ),
-      child: Switch(
-        value: value,
-        onChanged: onChanged,
-      ),
     );
   }
-}
 
-class RoundedIconButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onPressed;
-
-  const RoundedIconButton({
-    Key? key,
-    required this.icon,
-    required this.onPressed,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.5),
-            spreadRadius: 2,
-            blurRadius: 5,
-            offset: Offset(0, 3),
-          ),
-        ],
-      ),
-      child: IconButton(
-        icon: Icon(icon),
-        color: Colors.black,
-        onPressed: onPressed,
-      ),
-    );
+  void _showSnackbar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 }
