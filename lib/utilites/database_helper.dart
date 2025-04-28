@@ -1,11 +1,12 @@
 import 'dart:convert';
 import 'dart:async';
+import 'package:bubonelka/const_parameters.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:bubonelka/classes/phrase_card.dart';
 import 'package:bubonelka/classes/theme.dart';
-import 'package:bubonelka/const_parameters.dart';
+import 'package:flutter/services.dart';
 
 class DatabaseHelper {
   static const _dbName = 'app_database.db';
@@ -28,6 +29,7 @@ class DatabaseHelper {
       path,
       version: _dbVersion,
       onCreate: (db, version) async {
+        await db.execute('PRAGMA foreign_keys = ON;');
         await db.execute('''
           CREATE TABLE $tableTheme (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -42,7 +44,6 @@ class DatabaseHelper {
             position INTEGER
           );
         ''');
-
         await db.execute('''
           CREATE TABLE $tablePhraseCard (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -56,7 +57,7 @@ class DatabaseHelper {
             is_active INTEGER,
             is_deleted INTEGER,
             theme_id INTEGER,
-            FOREIGN KEY (theme_id) REFERENCES $tableTheme(id)
+            FOREIGN KEY (theme_id) REFERENCES $tableTheme(id) ON DELETE CASCADE
           );
         ''');
       },
@@ -64,7 +65,9 @@ class DatabaseHelper {
   }
 
   Future<void> loadInitialData() async {
-    await importThemesFromCsv('assets/csv/index.csv');
+    if (!await isInitialized()) {
+      await importThemesFromCsv('assets/csv/index.csv');
+    }
   }
 
   Future<bool> isInitialized() async {
@@ -83,29 +86,24 @@ class DatabaseHelper {
       final parts = lines[i].split(',');
       if (parts.length < 3) continue;
 
-      logInfo('Загружаю тему: ${parts[1].trim()} из файла: ${parts[2].trim()}');
-
-      final fileName = parts[2].trim();
-
       final theme = ThemeClass(
         themeNameTranslation: parts[0].trim(),
         themeName: parts[1].trim(),
-        fileName: fileName,
+        fileName: parts[2].trim(),
         numberOfRepetition: 0,
-        timeOfLastRepetition: null,
         parentId: parentId,
-        levels: parts.length > 3 ? _parseLevels(parts[3]) : ['A'],
-        imagePaths: [],
-        position: parts.length > 4 ? int.tryParse(parts[4].trim()) ?? 0 : 0,
+        levels: parts.length > 3 ? _parseDelimited(parts[3]) : ['A'],
+        imagePaths: parts.length > 4 ? _parseDelimited(parts[4]) : [],
+        position: parts.length > 5 ? int.tryParse(parts[5]) ?? 0 : 0,
       );
 
       final themeId = await insertTheme(theme);
 
       if (theme.fileName.isNotEmpty && theme.fileName.endsWith('.csv')) {
-        if (theme.fileName.endsWith('index.csv')) {
-          await importThemesFromCsv('assets/csv/${theme.fileName}', parentId: themeId);
-        } else {
+        if (!theme.fileName.contains('index.csv')) {
           await importPhraseCardsFromCsv(theme.copyWith(id: themeId));
+        } else {
+          await importThemesFromCsv('assets/csv/${theme.fileName}', parentId: themeId);
         }
       }
     }
@@ -114,6 +112,8 @@ class DatabaseHelper {
   Future<void> importPhraseCardsFromCsv(ThemeClass theme) async {
     final csvData = await rootBundle.loadString('assets/csv/${theme.fileName}');
     final lines = LineSplitter.split(csvData).toList();
+    final db = await database;
+    final batch = db.batch();
 
     for (int i = 1; i < lines.length; i++) {
       final parts = lines[i].split(',');
@@ -123,117 +123,79 @@ class DatabaseHelper {
         themeName: theme.themeName,
         germanPhrases: parts.sublist(0, 3).map((e) => e.trim()).toList(),
         translationPhrases: parts.sublist(3, 6).map((e) => e.trim()).toList(),
-        isActive: true,
-        isDeleted: false,
-        themeId: theme.id ?? 0,
+        themeId: theme.id!,
       );
 
-      await insertPhraseCard(phraseCard);
+      batch.insert(tablePhraseCard, phraseCard.toMap());
     }
-
-    logSuccess('Фразы загружены из: ${theme.fileName}');
+    await batch.commit(noResult: true);
   }
 
   Future<int> insertTheme(ThemeClass theme) async {
     final db = await database;
-    final id = await db.insert(tableTheme, theme.toMap());
-    logSuccess('Тема добавлена: ${theme.fileName} (id=$id)');
-    return id;
+    return await db.insert(tableTheme, theme.toMap());
   }
 
-  Future<int> insertPhraseCard(PhraseCard phraseCard) async {
-    final db = await database;
-    return await db.insert(tablePhraseCard, phraseCard.toMap());
-  }
+  Future<ThemeClass?> getThemeByName(String themeName) async {
+  final db = await database;
+  final result = await db.query(
+    tableTheme,
+    where: 'theme_name_translation = ?', // Ищем по названию темы на русском (или другом переводе)
+    whereArgs: [themeName],
+  );
 
-  Future<List<ThemeClass>> getAllThemes() async {
-    final db = await database;
-    final result = await db.query(tableTheme, orderBy: 'position ASC');
-    return result.map((e) => ThemeClass.fromMap(e)).toList();
+  if (result.isNotEmpty) {
+    return ThemeClass.fromMap(result.first);
+  } else {
+    return null;
   }
+}
 
   Future<List<ThemeClass>> getThemesByParentId(int parentId) async {
     final db = await database;
-    final result = await db.query(
-      tableTheme,
-      where: 'parent_id = ?',
-      whereArgs: [parentId],
-      orderBy: 'position ASC',
-    );
+    final result = await db.query(tableTheme, where: 'parent_id = ?', whereArgs: [parentId], orderBy: 'position ASC');
     return result.map((e) => ThemeClass.fromMap(e)).toList();
   }
 
-  Future<List<PhraseCard>> getPhrasesByThemeId(int themeId) async {
-    final db = await database;
-    final result = await db.query(
+  Future<List<PhraseCard>> getPhrasesForTheme({int? themeId, String? themeName}) async {
+  final db = await database;
+  List<Map<String, dynamic>> result = [];
+
+  if (themeId != null && themeId > 0) {
+    result = await db.query(
       tablePhraseCard,
       where: 'theme_id = ?',
       whereArgs: [themeId],
     );
-    return result.map((e) => PhraseCard.fromMap(e)).toList();
-  }
-
-  Future<List<PhraseCard>> getPhrasesByThemeName(String themeName) async {
-    final db = await database;
-    final result = await db.query(
+  } else if (themeName != null && themeName.isNotEmpty) {
+    result = await db.query(
       tablePhraseCard,
       where: 'theme_name = ?',
       whereArgs: [themeName],
     );
-    return result.map((e) => PhraseCard.fromMap(e)).toList();
   }
 
-  Future<void> addToFavorites(PhraseCard phraseCard) async {
-    final db = await database;
-    final existing = await db.query(
-      tablePhraseCard,
-      where: 'theme_name = ? AND german_phrase1 = ? AND translation_phrase1 = ?',
-      whereArgs: [
-        favoritePhrasesSet,
-        phraseCard.germanPhrases.isNotEmpty ? phraseCard.germanPhrases[0] : '',
-        phraseCard.translationPhrases.isNotEmpty ? phraseCard.translationPhrases[0] : '',
-      ],
-    );
-    if (existing.isEmpty) {
-      final newCard = phraseCard.copyWith(
-        themeName: favoritePhrasesSet,
-        themeId: -1,
-      );
-      await db.insert(tablePhraseCard, newCard.toMap());
-    }
+  return result.map((e) => PhraseCard.fromMap(e)).toList();
+}
+
+  static List<String> _parseDelimited(String raw) {
+    return raw.split(RegExp(r'[;,/ ]')).map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
   }
 
   Future<void> deletePhraseFromFavorites(PhraseCard phraseCard) async {
-    final db = await database;
-    await db.delete(
-      tablePhraseCard,
-      where: 'theme_name = ? AND german_phrase1 = ? AND translation_phrase1 = ?',
-      whereArgs: [
-        favoritePhrasesSet,
-        phraseCard.germanPhrases.isNotEmpty ? phraseCard.germanPhrases[0] : '',
-        phraseCard.translationPhrases.isNotEmpty ? phraseCard.translationPhrases[0] : '',
-      ],
-    );
-  }
+  final db = await database;
+  await db.delete(
+    tablePhraseCard,
+    where: 'theme_name = ? AND german_phrase1 = ? AND translation_phrase1 = ?',
+    whereArgs: [
+      favoritePhrasesSet,
+      phraseCard.germanPhrases.isNotEmpty ? phraseCard.germanPhrases[0] : '',
+      phraseCard.translationPhrases.isNotEmpty ? phraseCard.translationPhrases[0] : '',
+    ],
+  );
+}
 
-  static List<String> _parseLevels(String raw) {
-    return raw
-        .split(RegExp(r'[;,/ ]'))
-        .map((e) => e.trim().toUpperCase())
-        .where((e) => e.isNotEmpty)
-        .toList();
-  }
-
-  // 🚀 Логирование
-  void logInfo(String message) {
-    print('📥 $message');
-  }
-
-  void logSuccess(String message) {
-    print('✅ $message');
-  }
-
-  void logError(String message) {
-    print('❌ $message');
-  }
+  void logInfo(String message) => print('📥 $message');
+  void logSuccess(String message) => print('✅ $message');
+  void logError(String message) => print('❌ $message');
 }

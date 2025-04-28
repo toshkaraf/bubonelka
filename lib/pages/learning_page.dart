@@ -1,15 +1,11 @@
-// LearningPage, обновлённая для работы с базой данных
-
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
-import 'package:bubonelka/classes/phrase_card.dart';
-import 'package:bubonelka/utilites/database_helper.dart';
+import 'package:bubonelka/classes/current_phrases_set.dart';
 import 'package:bubonelka/const_parameters.dart';
+import 'package:bubonelka/classes/settings_and_state.dart';
 
 class LearningPage extends StatefulWidget {
-  final List<String> selectedThemeNames;
-
-  const LearningPage({super.key, required this.selectedThemeNames});
+  const LearningPage({super.key});
 
   @override
   State<LearningPage> createState() => _LearningPageState();
@@ -17,138 +13,144 @@ class LearningPage extends StatefulWidget {
 
 class _LearningPageState extends State<LearningPage> {
   final FlutterTts flutterTts = FlutterTts();
-  final DatabaseHelper dbHelper = DatabaseHelper();
+  final CurrentPhrasesSet phrasesSet = CurrentPhrasesSet();
 
-  List<PhraseCard> _phrases = [];
-  int _currentIndex = 0;
   bool _isPaused = false;
   bool _isPauseBetween = false;
   bool _isGerman = false;
-  double _speechRate = 0.5;
+  double _speechRate = speechRateTranslation;
 
   @override
   void initState() {
     super.initState();
-    _loadPhrases();
+    _initialize();
   }
 
-  Future<void> _loadPhrases() async {
-    List<PhraseCard> all = [];
-    for (final themeName in widget.selectedThemeNames) {
-      final list = await dbHelper.getPhrasesByThemeName(themeName);
-      all.addAll(list);
-    }
-    setState(() {
-      _phrases = all;
-    });
-    if (_phrases.isNotEmpty) {
-      _speakPhrases();
+  Future<void> _initialize() async {
+    final selectedThemes = SettingsAndState.getInstance().chosenThemes;
+    await phrasesSet.initialize(selectedThemes);
+
+    if (mounted && phrasesSet.currentPhraseCard != emptyPhraseCard) {
+      _speakCurrentPhrase();
     }
   }
 
   @override
   void dispose() {
     flutterTts.stop();
+    phrasesSet.reset();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final current = _phrases.isEmpty ? emptyPhraseCard : _phrases[_currentIndex];
-    final visiblePhrases = _isGerman ? current.germanPhrases : current.translationPhrases;
+    final phrase = phrasesSet.currentPhraseCard;
+    final visiblePhrases = _isGerman ? phrase.germanPhrases : phrase.translationPhrases;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Bubonelka'),
+        title: const Text('Изучение фраз'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.help_outline),
-            onPressed: () {},
-          ),
+          IconButton(icon: const Icon(Icons.speed), onPressed: () => _showSpeedDialog(context)),
         ],
       ),
       body: Column(
         children: [
           const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              Switch(
-                value: _isPauseBetween,
-                onChanged: (v) => setState(() => _isPauseBetween = v),
-              ),
-              IconButton(
-                icon: const Icon(Icons.speed),
-                onPressed: () => _showSpeedDialog(context),
-              ),
-              IconButton(
-                icon: const Icon(Icons.star),
-                onPressed: () async {
-                  await dbHelper.addToFavorites(current);
-                  _showSnackbar('Фраза добавлена в "Избранное".');
-                },
-              ),
-            ],
-          ),
+          _buildSwitches(),
           const SizedBox(height: 20),
           ...visiblePhrases.map((p) => Padding(
             padding: const EdgeInsets.symmetric(vertical: 6),
             child: Text(p, style: const TextStyle(fontSize: 20), textAlign: TextAlign.center),
           )),
           const Spacer(),
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.grey[200],
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(20),
-                topRight: Radius.circular(20),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.skip_previous),
-                  onPressed: _previousPhrase,
-                ),
-                IconButton(
-                  icon: Icon(_isPaused ? Icons.play_arrow : Icons.pause),
-                  onPressed: () {
-                    setState(() => _isPaused = !_isPaused);
-                    if (!_isPaused) _speakPhrases();
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.skip_next),
-                  onPressed: _nextPhrase,
-                ),
-              ],
-            ),
-          ),
+          _buildBottomControls(),
         ],
       ),
     );
   }
 
-  Future<void> _speakPhrases() async {
-    if (_phrases.isEmpty) return;
-    final current = _phrases[_currentIndex];
+  Widget _buildSwitches() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Text('Пауза между языками'),
+        Switch(
+          value: _isPauseBetween,
+          onChanged: (v) => setState(() => _isPauseBetween = v),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBottomControls() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.grey[200],
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          IconButton(icon: const Icon(Icons.skip_previous), onPressed: _previousPhrase),
+          IconButton(
+            icon: Icon(_isPaused ? Icons.play_arrow : Icons.pause),
+            onPressed: _togglePause,
+          ),
+          IconButton(icon: const Icon(Icons.skip_next), onPressed: _nextPhrase),
+        ],
+      ),
+    );
+  }
+
+  void _togglePause() {
+    setState(() => _isPaused = !_isPaused);
+    if (!_isPaused) {
+      _speakCurrentPhrase();
+    } else {
+      flutterTts.stop();
+    }
+  }
+
+  void _nextPhrase() {
+    if (phrasesSet.hasMore()) {
+      setState(() {
+        phrasesSet.getNextPhraseCard();
+        _isPaused = false;
+      });
+      _speakCurrentPhrase();
+    }
+  }
+
+  void _previousPhrase() {
+    setState(() {
+      phrasesSet.getPreviousPhraseCard();
+      _isPaused = false;
+    });
+    _speakCurrentPhrase();
+  }
+
+  Future<void> _speakCurrentPhrase() async {
+    final phrase = phrasesSet.currentPhraseCard;
     _isGerman = false;
     setState(() {});
 
     await flutterTts.setLanguage('ru-RU');
     await flutterTts.setSpeechRate(speechRateTranslation);
-    await flutterTts.setPitch(1);
+    await flutterTts.setPitch(1.0);
 
-    for (final phrase in current.translationPhrases) {
+    for (final p in phrase.translationPhrases) {
       if (_isPaused) return;
-      await flutterTts.speak(phrase);
+      await flutterTts.speak(p);
       await flutterTts.awaitSpeakCompletion(true);
     }
 
     if (_isPauseBetween) {
-      await Future.delayed(Duration(seconds: delayBeforGermanPhraseInSeconds));
+      await Future.delayed(const Duration(seconds: delayBeforGermanPhraseInSeconds));
     }
 
     _isGerman = true;
@@ -157,36 +159,16 @@ class _LearningPageState extends State<LearningPage> {
     await flutterTts.setLanguage('de-DE');
     await flutterTts.setSpeechRate(_speechRate);
 
-    for (int i = 0; i < 7; i++) {
-      for (final phrase in current.germanPhrases) {
+    for (int i = 0; i < 5; i++) {
+      for (final p in phrase.germanPhrases) {
         if (_isPaused) return;
-        await flutterTts.speak(phrase);
+        await flutterTts.speak(p);
         await flutterTts.awaitSpeakCompletion(true);
       }
     }
 
-    if (!_isPaused && _currentIndex < _phrases.length - 1) {
+    if (!_isPaused && phrasesSet.hasMore()) {
       _nextPhrase();
-    }
-  }
-
-  void _nextPhrase() {
-    if (_currentIndex < _phrases.length - 1) {
-      setState(() {
-        _currentIndex++;
-        _isPaused = false;
-      });
-      _speakPhrases();
-    }
-  }
-
-  void _previousPhrase() {
-    if (_currentIndex > 0) {
-      setState(() {
-        _currentIndex--;
-        _isPaused = false;
-      });
-      _speakPhrases();
     }
   }
 
@@ -194,7 +176,7 @@ class _LearningPageState extends State<LearningPage> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Выберите скорость'),
+        title: const Text('Выберите скорость речи'),
         content: Slider(
           value: _speechRate,
           min: 0.1,
@@ -204,16 +186,9 @@ class _LearningPageState extends State<LearningPage> {
           onChanged: (v) => setState(() => _speechRate = v),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Закрыть'),
-          )
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Закрыть')),
         ],
       ),
     );
-  }
-
-  void _showSnackbar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 }

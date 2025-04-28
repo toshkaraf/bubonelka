@@ -39,7 +39,7 @@ class StartPage extends StatelessWidget {
               ),
               
               // Небольшой разделитель, если нужен
-              const SizedBox(height: 16),
+              // const SizedBox(height: 16),
               
               // Сетка кнопок
               GridView.count(

@@ -1,111 +1,140 @@
-// import 'package:flutter/material.dart';
-// import 'package:bubonelka/rutes.dart';
-// import 'package:bubonelka/pages/edit_phrasecard_page.dart';
-// import 'package:bubonelka/const_parameters.dart';
-// import 'package:bubonelka/classes/settings_and_state.dart';
-// import 'package:bubonelka/utilites/database_helper.dart';
-// import 'package:bubonelka/classes/phrase_card.dart';
+import 'package:flutter/material.dart';
+import 'package:bubonelka/utilites/database_helper.dart';
+import 'package:bubonelka/const_parameters.dart';
+import 'package:bubonelka/classes/phrase_card.dart';
+import 'package:bubonelka/classes/settings_and_state.dart';
+import 'package:bubonelka/rutes.dart';
 
-// class FavoritePhrasesPage extends StatefulWidget {
-//   @override
-//   _FavoritePhrasesPageState createState() => _FavoritePhrasesPageState();
-// }
+class FavoritePhrasesPage extends StatefulWidget {
+  const FavoritePhrasesPage({super.key});
 
-// class _FavoritePhrasesPageState extends State<FavoritePhrasesPage> {
-//   List<PhraseCard> phraseCardsList = [];
-//   bool isTranslationFirst = false;
+  @override
+  State<FavoritePhrasesPage> createState() => _FavoritePhrasesPageState();
+}
 
-//   @override
-//   void initState() {
-//     super.initState();
-//     _loadFavoritePhrases();
-//   }
+class _FavoritePhrasesPageState extends State<FavoritePhrasesPage> {
+  final DatabaseHelper dbHelper = DatabaseHelper();
+  List<PhraseCard> phraseCardsList = [];
+  bool isTranslationFirst = false;
 
-//   Future<void> _loadFavoritePhrases() async {
-//     final db = DatabaseHelper();
-//     final all = await db.getPhrasesByThemeNameTranslation(favoritePhrasesSet);
-//     final unique = {
-//       for (var phrase in all) '${phrase.germanPhrases.join()}-${phrase.translationPhrases.join()}': phrase
-//     }.values.toList();
-//     setState(() => phraseCardsList = unique);
-//   }
+  @override
+  void initState() {
+    super.initState();
+    _loadFavoritePhrases();
+  }
 
-//   Future<void> _deletePhraseCard(PhraseCard phraseCard) async {
-//     final db = DatabaseHelper();
-//     await db.deletePhraseFromFavorites(phraseCard);
-//     _loadFavoritePhrases();
-//   }
+  Future<void> _loadFavoritePhrases() async {
+    final phrases = await dbHelper.getPhrasesForTheme(themeName: favoritePhrasesSet);
+    final unique = {
+      for (var phrase in phrases) '${phrase.germanPhrases.join()}-${phrase.translationPhrases.join()}': phrase
+    }.values.toList();
+    setState(() => phraseCardsList = unique);
+  }
 
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(title: const Text('Избранное')),
-//       body: Column(
-//         children: [
-//           Padding(
-//             padding: const EdgeInsets.symmetric(horizontal: 16.0),
-//             child: Row(
-//               mainAxisAlignment: MainAxisAlignment.end,
-//               children: [
-//                 const Text('сначала перевод', style: TextStyle(color: Colors.grey)),
-//                 Checkbox(
-//                   value: isTranslationFirst,
-//                   onChanged: (val) => setState(() => isTranslationFirst = val!),
-//                 )
-//               ],
-//             ),
-//           ),
-//           Expanded(
-//             child: phraseCardsList.isEmpty
-//                 ? const Center(child: Text('Список пуст', style: TextStyle(fontSize: 18)))
-//                 : ListView.separated(
-//                     itemCount: phraseCardsList.length,
-//                     separatorBuilder: (context, index) => const Divider(),
-//                     itemBuilder: (context, index) {
-//                       final phrase = phraseCardsList[index];
-//                       final germanText = phrase.germanPhrases.join('\n\n');
-//                       final translationText = phrase.translationPhrases.join('\n\n');
-//                       final front = isTranslationFirst ? translationText : germanText;
-//                       final back = isTranslationFirst ? germanText : translationText;
+  Future<void> _deletePhraseCard(PhraseCard phraseCard) async {
+    await dbHelper.deletePhraseFromFavorites(phraseCard);
+    await _loadFavoritePhrases();
+  }
 
-//                       return ListTile(
-//                         title: Text(front, style: const TextStyle(fontWeight: FontWeight.bold)),
-//                         subtitle: Text(back),
-//                         trailing: IconButton(
-//                           icon: const Icon(Icons.delete),
-//                           onPressed: () => _deletePhraseCard(phrase),
-//                         ),
-//                         onTap: () async {
-//                           await Navigator.push(
-//                             context,
-//                             MaterialPageRoute(
-//                               builder: (context) => EditPhraseCardPage(
-//                                 widgetName: editPhrasePageName,
-//                                 phraseCard: phrase,
-//                                 themeNameTranslation: favoritePhrasesSet,
-//                               ),
-//                             ),
-//                           );
-//                           _loadFavoritePhrases();
-//                         },
-//                       );
-//                     },
-//                   ),
-//           ),
-//           Padding(
-//             padding: const EdgeInsets.all(16.0),
-//             child: FloatingActionButton.extended(
-//               onPressed: () {
-//                 SettingsAndState.getInstance().chosenThemes = [favoritePhrasesSet];
-//                 Navigator.pushNamed(context, learningPageRoute);
-//               },
-//               label: const Text('Начать занятие'),
-//               icon: const Icon(Icons.play_arrow),
-//               heroTag: 'start_learning_hero',
-//             ),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-// }
+  Future<void> _clearFavorites() async {
+    final db = await dbHelper.database;
+    await db.delete(DatabaseHelper.tablePhraseCard, where: 'theme_name = ?', whereArgs: [favoritePhrasesSet]);
+    await _loadFavoritePhrases();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Избранное'),
+        actions: [
+          if (phraseCardsList.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.delete_forever),
+              onPressed: _confirmClearFavorites,
+              tooltip: 'Очистить всё',
+            ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                const Text('Сначала перевод', style: TextStyle(color: Colors.grey)),
+                Checkbox(
+                  value: isTranslationFirst,
+                  onChanged: (val) => setState(() => isTranslationFirst = val!),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: phraseCardsList.isEmpty
+                ? const Center(child: Text('Список пуст', style: TextStyle(fontSize: 18)))
+                : ListView.separated(
+                    itemCount: phraseCardsList.length,
+                    separatorBuilder: (context, index) => const Divider(),
+                    itemBuilder: (context, index) {
+                      final phrase = phraseCardsList[index];
+                      final germanText = phrase.germanPhrases.join('\n\n');
+                      final translationText = phrase.translationPhrases.join('\n\n');
+                      final front = isTranslationFirst ? translationText : germanText;
+                      final back = isTranslationFirst ? germanText : translationText;
+
+                      return ListTile(
+                        title: Text(front, style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text(back),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.delete),
+                          onPressed: () => _deletePhraseCard(phrase),
+                        ),
+                        onTap: () async {
+                          // Здесь можно добавить переход на страницу редактирования фразы
+                        },
+                      );
+                    },
+                  ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: FloatingActionButton.extended(
+              heroTag: 'start_learning_hero_favorite',
+              onPressed: () {
+                SettingsAndState.getInstance().chosenThemes = [favoritePhrasesSet];
+                Navigator.pushNamed(context, learningPageRoute);
+              },
+              label: const Text('Начать занятие'),
+              icon: const Icon(Icons.play_arrow),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmClearFavorites() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Очистить избранное?'),
+        content: const Text('Вы уверены, что хотите удалить все фразы из избранного?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Отмена'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await _clearFavorites();
+            },
+            child: const Text('Очистить', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+}

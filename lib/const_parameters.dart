@@ -1,6 +1,5 @@
-// const_parameters.dart (обновлённый)
 import 'package:bubonelka/classes/phrase_card.dart';
-import 'package:bubonelka/classes/theme.dart';
+import 'package:bubonelka/classes/theme.dart'; // исправил путь на актуальный
 
 // Пути к CSV-файлам
 const String csvFileOfCollection = 'assets/phrase_collection.csv';
@@ -14,9 +13,9 @@ const String noPath = '';
 const String favoritePhrasesSet = 'Избранное';
 
 // Экземпляр темы "Избранное"
-ThemeClass favoriteSet = ThemeClass(
+final ThemeClass favoriteSet = ThemeClass(
   themeNameTranslation: favoritePhrasesSet,
-  themeName: '',
+  themeName: 'Favorites',
   fileName: '',
   numberOfRepetition: 0,
   parentId: -1,
@@ -28,30 +27,21 @@ const String themeConstForCSV = 'Тема##';
 const String playListConstForCSV = 'Плейлист##';
 const int maxNumberOfThemesInPlaylist = 20;
 
-// UI
+// UI параметры
 const double dividerWidth = 8.0;
 
-// Заглушка: пустая карта, если фраз не осталось
-PhraseCard emptyPhraseCard = PhraseCard(
+// Заглушки для PhraseCard
+final PhraseCard emptyPhraseCard = PhraseCard(
   themeName: 'EmptyCard',
-  translationPhrases: [
-    'Фраз для изучения больше нет! Выбери новые темы.',
-  ],
-  germanPhrases: [
-    'Es gibt keine Phrasen mehr zu lernen! Wählen Sie neue Themen.',
-  ],
-  isActive: true,
-  isDeleted: false,
+  germanPhrases: ['Es gibt keine Phrasen mehr zu lernen! Wählen Sie neue Themen.'],
+  translationPhrases: ['Фраз для изучения больше нет! Выбери новые темы.'],
   themeId: -1,
 );
 
-// Нейтральная карта-заполнитель
-PhraseCard neutralPhraseCard = PhraseCard(
+final PhraseCard neutralPhraseCard = PhraseCard(
   themeName: 'NeutralCard',
-  translationPhrases: [''],
   germanPhrases: [''],
-  isActive: true,
-  isDeleted: false,
+  translationPhrases: [''],
   themeId: -1,
 );
 

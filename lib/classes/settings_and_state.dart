@@ -1,25 +1,37 @@
-// import 'package:bubonelka/classes/collection_provider.dart';
+import 'package:bubonelka/const_parameters.dart';
+import 'package:bubonelka/rutes.dart';
 
-// class SettingsAndState {
-//   static final SettingsAndState _instance = SettingsAndState._internal();
-//   String _currentThemeName = CollectionProvider.getInstance().getListOfThemesNames()[0];
-//   List<String> _themeList = [];
+class SettingsAndState {
+  static final SettingsAndState _instance = SettingsAndState._internal();
 
-//   SettingsAndState._internal();
+  String _currentThemeName = '';
+  List<String> _chosenThemes = [];
 
-//   String get currentThemeName => _currentThemeName;
+  SettingsAndState._internal();
 
-//   set currentThemeName(String currentThemeName) {
-//     _currentThemeName = currentThemeName;
-//   }
+  static SettingsAndState getInstance() => _instance;
 
-//   List<String> get themeList => _themeList;
+  String get currentThemeName => _currentThemeName;
 
-//   set themeList(List<String> themeList) {
-//     _themeList = themeList;
-//   }
+  set currentThemeName(String themeName) {
+    _currentThemeName = themeName;
+  }
 
-//   static SettingsAndState getInstance() {
-//     return _instance;
-//   }
-// }
+  List<String> get chosenThemes => _chosenThemes;
+
+  set chosenThemes(List<String> themes) {
+    _chosenThemes = themes;
+    if (themes.isNotEmpty) {
+      _currentThemeName = themes.first;
+    }
+  }
+
+  void resetChosenThemes() {
+    _chosenThemes = [];
+    _currentThemeName = '';
+  }
+
+  bool isFavoriteSelected() {
+    return _chosenThemes.length == 1 && _chosenThemes.first == favoritePhrasesPage;
+  }
+}
