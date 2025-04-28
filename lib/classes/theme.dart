@@ -79,3 +79,11 @@ class ThemeClass {
     );
   }
 }
+
+extension ThemeClassExtensions on ThemeClass {
+  String get grammarFilePath {
+    final topicKey = fileName.replaceAll('.csv', '');
+    return 'assets/csv/${topicKey}_grammar.html';
+  }
+}
+

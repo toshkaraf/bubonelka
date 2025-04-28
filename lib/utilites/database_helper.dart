@@ -195,6 +195,22 @@ class DatabaseHelper {
   );
 }
 
+Future<String> loadGrammarHtml(String assetPath) async {
+  try {
+    return await rootBundle.loadString(assetPath);
+  } catch (e) {
+    return 'Не удалось загрузить справку.';
+  }
+}
+
+Future<bool> hasSubthemes(int parentId) async {
+  final db = await database;
+  final count = Sqflite.firstIntValue(await db.rawQuery(
+    'SELECT COUNT(*) FROM $tableTheme WHERE parent_id = ?', [parentId]
+  ));
+  return (count ?? 0) > 0;
+}
+
   void logInfo(String message) => print('📥 $message');
   void logSuccess(String message) => print('✅ $message');
   void logError(String message) => print('❌ $message');

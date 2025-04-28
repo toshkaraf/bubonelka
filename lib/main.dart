@@ -105,7 +105,7 @@ class MyApp extends StatelessWidget {
       routes: {
         startRoute: (context) => StartPage(),
         // themeLiЫstPageRoute: (context) => ThemesListPage(),
-        // learningPageRoute: (context) => LearningPage(),
+        learningPageRoute: (context) => LearningPage(),
         chooseThemePageRoute: (context) => ChooseThemePage(),
         favoritePhrasesPage: (context) => FavoritePhrasesPage(),
         // playlistsListPage: (context) => PlaylistsListPage(),
