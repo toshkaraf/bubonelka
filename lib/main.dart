@@ -13,57 +13,83 @@ import 'package:flutter/services.dart';
 
 
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();try {
-    final data = await rootBundle.loadString('assets/csv/imperativ.csv');
-    print('CSV CONTENT:\n$data');
-  } catch (e) {
-    print('Ошибка загрузки imperativ.csv: $e');
-  }
+// void main() async {
+//   WidgetsFlutterBinding.ensureInitialized();try {
+//     final data = await rootBundle.loadString('assets/csv/imperativ.csv');
+//     print('CSV CONTENT:\n$data');
+//   } catch (e) {
+//     print('Ошибка загрузки imperativ.csv: $e');
+//   }
 
  
+//   try {
+//     final data1 = await rootBundle.loadString('assets/csv/konjunktionen/index.csv');
+//     print('CSV CONTENT:\n$data1');
+//   } catch (e) {
+//     print('Ошибка загрузки konjuktionen/index.csv: $e');
+//   }
+
+//   // Проверка первого запуска и инициализация БД
+//   await initializeApp();
+
+//   runApp(const MyApp());
+// }
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  print('🟢 main() запущен: старт приложения');
+
   try {
-    final data1 = await rootBundle.loadString('assets/csv/konjunktionen/index.csv');
-    print('CSV CONTENT:\n$data1');
-  } catch (e) {
-    print('Ошибка загрузки konjuktionen/index.csv: $e');
+    await initializeApp();
+    print('🟢 initializeApp() завершился успешно');
+    runApp(const MyApp());
+    print('🟢 runApp() вызван');
+  } catch (e, stackTrace) {
+    print('❌ Ошибка в main(): $e');
+    print('❌ StackTrace: $stackTrace');
   }
-
-  await initializeApp();
-  // Проверка первого запуска и инициализация БД
-  await initializeApp();
-
-  runApp(const MyApp());
 }
 
 Future<void> initializeApp() async {
-  final prefs = await SharedPreferences.getInstance();
-  final bool isFirstRun = prefs.getBool('isFirstRun') ?? true;
+  print('🟢 initializeApp() начат');
 
-  final dbHelper = DatabaseHelper();
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    print('🟢 SharedPreferences получены');
 
-  if (isFirstRun) {
-    // Загружаем данные из CSV в БД при первом запуске
-    print('Первый запуск: загрузка данных из CSV...');
-    await dbHelper.loadInitialData();
+    final dbHelper = DatabaseHelper();
+    print('🟢 DatabaseHelper создан');
 
-    // Отмечаем, что первый запуск прошел
-    await prefs.setBool('isFirstRun', false);
-  } else {
-    print('Приложение уже инициализировано ранее');
-    // Проверка наличия данных в БД
-    bool hasData = await dbHelper.isInitialized();
-    if (!hasData) {
-      // Если по какой-то причине данных нет, загружаем их снова
-      print('Данных в БД нет, повторная загрузка...');
+    final bool isFirstRun = prefs.getBool('isFirstRun') ?? true;
+    print('🟢 isFirstRun = $isFirstRun');
+
+    if (isFirstRun) {
+      print('🟢 Первый запуск: загружаем начальные данные...');
       await dbHelper.loadInitialData();
+      await prefs.setBool('isFirstRun', false);
+      print('✅ Данные загружены при первом запуске');
+    } else {
+      print('🟢 Приложение уже запускалось ранее');
+      bool hasData = await dbHelper.isInitialized();
+      print('🟢 Проверка базы данных: hasData = $hasData');
+
+      if (!hasData) {
+        print('⚠️ База данных пуста, повторная загрузка данных...');
+        await dbHelper.loadInitialData();
+        print('✅ Данные успешно загружены повторно');
+      } else {
+        print('✅ Данные в базе данных найдены');
+      }
     }
+
+    print('🟢 initializeApp() завершён успешно');
+  } catch (e, stackTrace) {
+    print('❌ Ошибка внутри initializeApp(): $e');
+    print('❌ StackTrace: $stackTrace');
+    rethrow; // Обязательно прокидываем ошибку дальше
   }
 }
 
-// void main() {
-//   runApp(const MyApp());
-// }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});

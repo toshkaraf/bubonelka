@@ -39,8 +39,7 @@ class DatabaseHelper {
             parent_id INTEGER,
             level TEXT,
             image_paths TEXT,
-            position INTEGER,
-            folder TEXT
+            position INTEGER
           );
         ''');
 
@@ -79,7 +78,6 @@ class DatabaseHelper {
   Future<void> importThemesFromCsv(String assetPath, {int parentId = 0}) async {
     final csvData = await rootBundle.loadString(assetPath);
     final lines = LineSplitter.split(csvData).toList();
-    final folder = _extractFolderFromPath(assetPath);
 
     for (int i = 1; i < lines.length; i++) {
       final parts = lines[i].split(',');
@@ -88,12 +86,6 @@ class DatabaseHelper {
       logInfo('Загружаю тему: ${parts[1].trim()} из файла: ${parts[2].trim()}');
 
       final fileName = parts[2].trim();
-      String themeSubfolder = folder;
-
-      if (fileName.contains('/') && fileName.endsWith('index.csv')) {
-        final subfolder = fileName.split('/').first;
-        themeSubfolder = '$folder/$subfolder';
-      }
 
       final theme = ThemeClass(
         themeNameTranslation: parts[0].trim(),
@@ -105,15 +97,13 @@ class DatabaseHelper {
         levels: parts.length > 3 ? _parseLevels(parts[3]) : ['A'],
         imagePaths: [],
         position: parts.length > 4 ? int.tryParse(parts[4].trim()) ?? 0 : 0,
-        folder: themeSubfolder,
       );
 
       final themeId = await insertTheme(theme);
 
       if (theme.fileName.isNotEmpty && theme.fileName.endsWith('.csv')) {
-        final nestedPath = _buildAssetPath(theme);
         if (theme.fileName.endsWith('index.csv')) {
-          await importThemesFromCsv(nestedPath, parentId: themeId);
+          await importThemesFromCsv('assets/csv/${theme.fileName}', parentId: themeId);
         } else {
           await importPhraseCardsFromCsv(theme.copyWith(id: themeId));
         }
@@ -122,8 +112,7 @@ class DatabaseHelper {
   }
 
   Future<void> importPhraseCardsFromCsv(ThemeClass theme) async {
-    final phraseCardsPath = _buildAssetPath(theme);
-    final csvData = await rootBundle.loadString(phraseCardsPath);
+    final csvData = await rootBundle.loadString('assets/csv/${theme.fileName}');
     final lines = LineSplitter.split(csvData).toList();
 
     for (int i = 1; i < lines.length; i++) {
@@ -142,13 +131,13 @@ class DatabaseHelper {
       await insertPhraseCard(phraseCard);
     }
 
-    logSuccess('Фразы загружены из: ${theme.folder}/${theme.fileName}');
+    logSuccess('Фразы загружены из: ${theme.fileName}');
   }
 
   Future<int> insertTheme(ThemeClass theme) async {
     final db = await database;
     final id = await db.insert(tableTheme, theme.toMap());
-    logSuccess('Тема добавлена: ${theme.folder}/${theme.fileName} (id=$id)');
+    logSuccess('Тема добавлена: ${theme.fileName} (id=$id)');
     return id;
   }
 
@@ -227,14 +216,6 @@ class DatabaseHelper {
     );
   }
 
-  String _extractFolderFromPath(String path) {
-    final parts = path.split('/');
-    if (parts.length >= 3) {
-      return parts[parts.length - 2];
-    }
-    return 'csv';
-  }
-
   static List<String> _parseLevels(String raw) {
     return raw
         .split(RegExp(r'[;,/ ]'))
@@ -243,16 +224,7 @@ class DatabaseHelper {
         .toList();
   }
 
-  String _buildAssetPath(ThemeClass theme) {
-    if (theme.fileName.endsWith('index.csv')) {
-      return 'assets/csv/${theme.fileName}';
-    } else {
-      final baseFolder = (theme.folder == 'csv') ? '' : '${theme.folder}/';
-      return 'assets/csv/$baseFolder${theme.fileName}';
-    }
-  }
-
-  // 🚀 Красивые логи:
+  // 🚀 Логирование
   void logInfo(String message) {
     print('📥 $message');
   }

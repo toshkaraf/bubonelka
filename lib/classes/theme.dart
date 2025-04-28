@@ -9,7 +9,6 @@ class ThemeClass {
   final List<String> levels;
   final List<String> imagePaths;
   final int position;
-  final String folder; // Новое поле для хранения папки
 
   ThemeClass({
     this.id,
@@ -22,15 +21,14 @@ class ThemeClass {
     this.levels = const ['A'],
     this.imagePaths = const [],
     this.position = 0,
-    this.folder = '',
   })  : _themeNameTranslation = themeNameTranslation,
         _themeName = themeName;
 
-  // Геттеры для названия темы
+  // Геттеры
   String get themeNameTranslation => _themeNameTranslation;
   String get themeName => _themeName;
 
-  // Сеттеры для названия темы
+  // Сеттеры
   set themeNameTranslation(String value) {
     _themeNameTranslation = value;
   }
@@ -42,13 +40,13 @@ class ThemeClass {
   // Геттер для пути к грамматическому файлу
   String get computedGrammarFilePath {
     final topicKey = fileName.replaceAll('.csv', '');
-    return 'assets/csv/$folder/${topicKey}_grammar.html';
+    return 'assets/csv/${topicKey}_grammar.html';
   }
 
   // Геттер для пути к папке изображений
   String get computedImageFolderPath {
     final topicKey = fileName.replaceAll('.csv', '');
-    return 'assets/csv/$folder/${topicKey}_img';
+    return 'assets/csv/${topicKey}_img';
   }
 
   Map<String, dynamic> toMap() {
@@ -63,7 +61,6 @@ class ThemeClass {
       'level': levels.join(';'),
       'image_paths': imagePaths.join(';'),
       'position': position,
-      'folder': folder,
     };
   }
 
@@ -79,7 +76,6 @@ class ThemeClass {
       levels: _parseLevels(map['level']),
       imagePaths: _parseDelimitedList(map['image_paths']),
       position: map['position'] ?? 0,
-      folder: map['folder'] ?? '',
     );
   }
 
@@ -94,7 +90,6 @@ class ThemeClass {
     List<String>? levels,
     List<String>? imagePaths,
     int? position,
-    String? folder,
   }) {
     return ThemeClass(
       id: id ?? this.id,
@@ -107,7 +102,6 @@ class ThemeClass {
       levels: levels ?? this.levels,
       imagePaths: imagePaths ?? this.imagePaths,
       position: position ?? this.position,
-      folder: folder ?? this.folder,
     );
   }
 
