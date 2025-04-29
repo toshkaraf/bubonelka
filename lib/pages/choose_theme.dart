@@ -30,21 +30,34 @@ class _ChooseThemePageState extends State<ChooseThemePage> {
   @override
   void initState() {
     super.initState();
-    _loadThemes();
-    _filterController.addListener(_applyFilterAndExpand);
+    _loadAllThemes();
+    _filterController.addListener(_applyFilter);
   }
 
-  Future<void> _loadThemes() async {
-    List<ThemeClass> result = await dbHelper.getThemesByParentId(widget.parentId);
-    result.sort((a, b) => a.position.compareTo(b.position));
+  Future<void> _loadAllThemes() async {
+    final themes = await dbHelper.getAllThemes();
+    themes.sort((a, b) => a.position.compareTo(b.position));
     setState(() {
-      allThemes = result;
+      allThemes = themes;
     });
   }
 
-  void _applyFilterAndExpand() async {
-    expandedIds.clear();
-    setState(() {});
+  void _applyFilter() {
+    setState(() {
+      expandedIds.clear();
+      if (_filterController.text.isNotEmpty) {
+        _expandMatchingThemes();
+      }
+    });
+  }
+
+  void _expandMatchingThemes() {
+    final query = _filterController.text.toLowerCase();
+    for (var theme in allThemes) {
+      if (theme.themeName.toLowerCase().contains(query) || theme.themeNameTranslation.toLowerCase().contains(query)) {
+        expandedIds.add(theme.parentId);
+      }
+    }
   }
 
   bool _matchesFilter(ThemeClass theme) {
@@ -53,7 +66,16 @@ class _ChooseThemePageState extends State<ChooseThemePage> {
         theme.themeNameTranslation.toLowerCase().contains(query);
     final matchesLevel = (filterA1A2 && theme.levels.any((l) => l.startsWith('A')))
         || (filterB1B2 && theme.levels.any((l) => l.startsWith('B')));
+    if (query.isEmpty && filterA1A2 && filterB1B2) return true;
     return matchesQuery && matchesLevel;
+  }
+
+  List<ThemeClass> _getChildren(int parentId) {
+    return allThemes
+        .where((theme) => theme.parentId == parentId)
+        .where(_matchesFilter)
+        .toList()
+      ..sort((a, b) => a.position.compareTo(b.position));
   }
 
   @override
@@ -67,7 +89,11 @@ class _ChooseThemePageState extends State<ChooseThemePage> {
         children: [
           _buildFilterBar(),
           _buildFilterOptions(),
-          Expanded(child: _buildThemeTree(allThemes)),
+          Expanded(
+            child: ListView(
+              children: _buildThemeTree(widget.parentId),
+            ),
+          ),
         ],
       ),
       floatingActionButton: selectedThemeIds.isNotEmpty
@@ -107,11 +133,7 @@ class _ChooseThemePageState extends State<ChooseThemePage> {
             children: [
               Checkbox(
                 value: filterA1A2,
-                onChanged: (val) {
-                  setState(() {
-                    filterA1A2 = val!;
-                  });
-                },
+                onChanged: (val) => setState(() => filterA1A2 = val!),
               ),
               const Text('A1-A2'),
             ],
@@ -121,11 +143,7 @@ class _ChooseThemePageState extends State<ChooseThemePage> {
             children: [
               Checkbox(
                 value: filterB1B2,
-                onChanged: (val) {
-                  setState(() {
-                    filterB1B2 = val!;
-                  });
-                },
+                onChanged: (val) => setState(() => filterB1B2 = val!),
               ),
               const Text('B1-B2'),
             ],
@@ -135,11 +153,7 @@ class _ChooseThemePageState extends State<ChooseThemePage> {
             children: [
               Checkbox(
                 value: showTranslations,
-                onChanged: (val) {
-                  setState(() {
-                    showTranslations = val!;
-                  });
-                },
+                onChanged: (val) => setState(() => showTranslations = val!),
               ),
               const Text('Перевод'),
             ],
@@ -149,105 +163,56 @@ class _ChooseThemePageState extends State<ChooseThemePage> {
     );
   }
 
-  Widget _buildThemeTree(List<ThemeClass> themes) {
-    final filtered = themes.where(_matchesFilter).toList()
-      ..sort((a, b) => a.position.compareTo(b.position));
+  List<Widget> _buildThemeTree(int parentId) {
+    final children = _getChildren(parentId);
 
-    return ListView(
-      children: filtered.map((theme) => FutureBuilder<bool>(
-        future: dbHelper.hasSubthemes(theme.id!),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const SizedBox();
-          }
-          final isFolder = snapshot.data ?? false;
-          return isFolder ? _buildFolder(theme) : _buildThemeTile(theme);
-        },
-      )).toList(),
-    );
-  }
+    if (children.isEmpty) {
+      return [];
+    }
 
-    Widget _buildFolder(ThemeClass theme) {
-    final bool shouldExpandAutomatically = _shouldExpand(theme);
-    final isExpanded = expandedIds.contains(theme.id) || shouldExpandAutomatically;
-    if (shouldExpandAutomatically) expandedIds.add(theme.id!);
-
-    return ExpansionTile(
-      leading: Icon(isExpanded ? Icons.folder_open : Icons.folder, color: Colors.amber),
-      title: Text(theme.themeName, style: const TextStyle(fontWeight: FontWeight.bold)),
-      subtitle: showTranslations ? Text(theme.themeNameTranslation, style: const TextStyle(color: Colors.grey)) : null,
-      initiallyExpanded: isExpanded,
-      onExpansionChanged: (expanded) {
-        setState(() {
-          if (expanded) {
-            expandedIds.add(theme.id!);
-          } else {
-            expandedIds.remove(theme.id);
-          }
-        });
-      },
-      children: [
-        FutureBuilder<List<ThemeClass>>(
-          future: dbHelper.getThemesByParentId(theme.id!),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            final children = (snapshot.data ?? [])
-                .where((e) {
-                  if (_filterController.text.isEmpty && filterA1A2 && filterB1B2) {
-                    return true;
-                  }
-                  return _matchesFilter(e);
-                })
-                .toList()
-                ..sort((a, b) => a.position.compareTo(b.position));
-            return Column(
-              children: children.map((e) => FutureBuilder<bool>(
-                future: dbHelper.hasSubthemes(e.id!),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const SizedBox();
-                  }
-                  final isSubFolder = snapshot.data ?? false;
-                  return isSubFolder ? _buildFolder(e) : _buildThemeTile(e);
-                },
-              )).toList(),
-            );
+    return children.map((theme) {
+      final hasChildren = allThemes.any((t) => t.parentId == theme.id);
+      if (hasChildren) {
+        final isExpanded = expandedIds.contains(theme.id);
+        return ExpansionTile(
+          leading: Icon(isExpanded ? Icons.folder_open : Icons.folder, color: Colors.amber),
+          title: Text(theme.themeName, style: const TextStyle(fontWeight: FontWeight.bold)),
+          subtitle: showTranslations ? Text(theme.themeNameTranslation, style: const TextStyle(color: Colors.grey)) : null,
+          initiallyExpanded: isExpanded,
+          onExpansionChanged: (expanded) {
+            setState(() {
+              if (expanded) {
+                expandedIds.add(theme.id!);
+              } else {
+                expandedIds.remove(theme.id);
+              }
+            });
           },
-        ),
-      ],
-    );
-  }
-
-  bool _shouldExpand(ThemeClass theme) {
-    final query = _filterController.text.toLowerCase();
-    if (query.isEmpty) return false;
-    return theme.themeName.toLowerCase().contains(query) ||
-           theme.themeNameTranslation.toLowerCase().contains(query);
-  }
-
-  Widget _buildThemeTile(ThemeClass theme) {
-    return ListTile(
-      leading: IconButton(
-        icon: const Icon(Icons.menu_book, color: Colors.blueAccent),
-        onPressed: () => _showGrammarDialog(theme.grammarFilePath),
-      ),
-      title: Text(theme.themeName, style: const TextStyle(fontWeight: FontWeight.bold)),
-      subtitle: showTranslations ? Text(theme.themeNameTranslation, style: const TextStyle(color: Colors.grey)) : null,
-      trailing: Checkbox(
-        value: selectedThemeIds.contains(theme.id),
-        onChanged: (val) {
-          setState(() {
-            if (val == true) {
-              selectedThemeIds.add(theme.id!);
-            } else {
-              selectedThemeIds.remove(theme.id);
-            }
-          });
-        },
-      ),
-    );
+          children: _buildThemeTree(theme.id!),
+        );
+      } else {
+        return ListTile(
+          leading: IconButton(
+            icon: const Icon(Icons.menu_book, color: Colors.blueAccent),
+            onPressed: () => _showGrammarDialog(theme.grammarFilePath),
+          ),
+          title: Text(theme.themeName, style: const TextStyle(fontWeight: FontWeight.bold)),
+          subtitle: showTranslations ? Text(theme.themeNameTranslation, style: const TextStyle(color: Colors.grey)) : null,
+          trailing: Checkbox(
+            value: selectedThemeIds.contains(theme.id),
+            onChanged: (val) {
+              setState(() {
+                if (val == true) {
+                  selectedThemeIds.add(theme.id!);
+                } else {
+                  selectedThemeIds.remove(theme.id);
+                }
+              });
+            },
+          ),
+        );
+      }
+    }).toList();
   }
 
   void _showGrammarDialog(String grammarPath) async {

@@ -211,6 +211,14 @@ Future<bool> hasSubthemes(int parentId) async {
   return (count ?? 0) > 0;
 }
 
+Future<List<ThemeClass>> getAllThemes() async {
+  final db = await database;
+  final result = await db.query('themes', orderBy: 'position ASC');
+  return result.map((e) => ThemeClass.fromMap(e)).toList();
+}
+
+
+
   void logInfo(String message) => print('📥 $message');
   void logSuccess(String message) => print('✅ $message');
   void logError(String message) => print('❌ $message');
