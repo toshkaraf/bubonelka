@@ -1,7 +1,7 @@
 Союзы сложноподчиненных предложений: verbundene Konjunktionen
-или/или,entweder/oder,verbundene_konjunktionen/entweder_oder.csv,B,20
-Чем/тем,Je/desto,verbundene_konjunktionen/je_desto.csv,B,10
-не/а,"nicht/sondern, kein/sondern",verbundene_konjunktionen/nicht_sondern.csv,B,40
-как/так и,sowohl/als auch,verbundene_konjunktionen/sowohl_als auch.csv,B,50
-ни/ни,weder/noch,verbundene_konjunktionen/weder_noch.csv,B,30
-вообще-то/но,zwar/aber,verbundene_konjunktionen/zwar_aber.csv,B,60
+или/или;entweder/oder;verbundene_konjunktionen/entweder_oder.csv;B;20
+Чем/тем;Je/desto;verbundene_konjunktionen/je_desto.csv;B;10
+не/а;"nicht/sondern; kein/sondern";verbundene_konjunktionen/nicht_sondern.csv;B;40
+как/так и;sowohl/als auch;verbundene_konjunktionen/sowohl_als auch.csv;B;50
+ни/ни;weder/noch;verbundene_konjunktionen/weder_noch.csv;B;30
+вообще-то/но;zwar/aber;verbundene_konjunktionen/zwar_aber.csv;B;60

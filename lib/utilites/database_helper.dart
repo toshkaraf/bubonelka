@@ -82,14 +82,13 @@ class DatabaseHelper {
 Future<void> importThemesFromCsv(String assetPath, {int parentId = 0}) async {
   final csvData = await rootBundle.loadString(assetPath);
   final List<List<dynamic>> csvTable = const CsvToListConverter(
-    fieldDelimiter: ',',
-    textDelimiter: '"',
+    fieldDelimiter: ';', // точка с запятой
     eol: '\n',
   ).convert(csvData);
 
   print('📥 ====== CSV CONTENT FOR $assetPath ======');
   for (int i = 0; i < csvTable.length; i++) {
-    print('📥 Line $i: ${csvTable[i].join(',')}');
+    print('📥 Line $i: ${csvTable[i].join(';')}');
   }
   print('📥 ======================================');
 
@@ -101,7 +100,6 @@ Future<void> importThemesFromCsv(String assetPath, {int parentId = 0}) async {
       continue;
     }
 
-    // Парсинг позиции (index 4 = пятый столбец)
     int position = i;
     if (parts.length > 4) {
       final parsed = int.tryParse(parts[4]);
@@ -137,17 +135,16 @@ Future<void> importThemesFromCsv(String assetPath, {int parentId = 0}) async {
   }
 }
 
-  Future<void> importPhraseCardsFromCsv(ThemeClass theme) async {
+Future<void> importPhraseCardsFromCsv(ThemeClass theme) async {
   final csvData = await rootBundle.loadString('assets/csv/${theme.fileName}');
   final List<List<dynamic>> csvTable = const CsvToListConverter(
-    fieldDelimiter: ',',
-    textDelimiter: '"',
+    fieldDelimiter: ';', // точка с запятой
     eol: '\n',
   ).convert(csvData);
 
   print('📥 ====== PHRASES CSV FOR ${theme.themeName} ======');
   for (int i = 0; i < csvTable.length; i++) {
-    print('📥 Line $i: ${csvTable[i].join(',')}');
+    print('📥 Line $i: ${csvTable[i].join(';')}');
   }
   print('📥 ======================================');
 
@@ -175,6 +172,7 @@ Future<void> importThemesFromCsv(String assetPath, {int parentId = 0}) async {
   await batch.commit(noResult: true);
   logSuccess('✅ Фразы загружены для темы: ${theme.themeNameTranslation}');
 }
+
 
   Future<List<ThemeClass>> getThemesByParentId(int parentId) async {
     final db = await database;
