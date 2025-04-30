@@ -36,9 +36,14 @@ class _ChooseThemePageState extends State<ChooseThemePage> {
 
   Future<void> _loadAllThemes() async {
     final themes = await dbHelper.getAllThemes();
-    themes.sort((a, b) => a.position.compareTo(b.position));
+    for (var theme in themes) {
+      if (theme.position == 0) {
+        print('⚠️ Тема без позиции: id=${theme.id}, name=${theme.themeNameTranslation}');
+      }
+      print('📂 Загрузка темы: id=${theme.id}, name=${theme.themeNameTranslation}, position=${theme.position}');
+    }
     setState(() {
-      allThemes = themes;
+      allThemes = themes..sort((a, b) => a.position.compareTo(b.position));
     });
   }
 
@@ -192,10 +197,7 @@ class _ChooseThemePageState extends State<ChooseThemePage> {
         );
       } else {
         return ListTile(
-          leading: IconButton(
-            icon: const Icon(Icons.menu_book, color: Colors.blueAccent),
-            onPressed: () => _showGrammarDialog(theme.grammarFilePath),
-          ),
+          leading: const Icon(Icons.menu_book, color: Colors.blueAccent),
           title: Text(theme.themeName, style: const TextStyle(fontWeight: FontWeight.bold)),
           subtitle: showTranslations ? Text(theme.themeNameTranslation, style: const TextStyle(color: Colors.grey)) : null,
           trailing: Checkbox(
