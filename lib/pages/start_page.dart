@@ -27,51 +27,41 @@ class StartPage extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Иллюстрация с тенью
               Container(
-                height: MediaQuery.of(context).size.height * 0.25, // 25% высоты экрана
-                decoration: BoxDecoration(
-                  image: const DecorationImage(
+                height: MediaQuery.of(context).size.height * 0.25,
+                decoration: const BoxDecoration(
+                  image: DecorationImage(
                     image: AssetImage('assets/illustrations/header_image.jpg'),
                     fit: BoxFit.cover,
                   ),
                 ),
               ),
-              
-              // Небольшой разделитель, если нужен
-              // const SizedBox(height: 16),
-              
-              // Сетка кнопок
               GridView.count(
-                shrinkWrap: true, // Чтобы сетка сжималась до размера содержимого
-                physics: const NeverScrollableScrollPhysics(), // Отключаем скролл для сетки
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
                 crossAxisCount: 2,
                 mainAxisSpacing: 20,
                 crossAxisSpacing: 20,
-                childAspectRatio: 1.2, // Регулирует соотношение сторон ячеек
+                childAspectRatio: 1.2,
                 children: [
                   _AnimatedMenuButton(
-                    icon: Icons.menu_book, // Иконка книги вместо fiber_new
+                    icon: Icons.menu_book,
                     label: 'Новые темы',
-                    heroTag: 'hero_new',
                     destination: chooseThemePageRoute,
                   ),
                   _AnimatedMenuButton(
                     icon: Icons.star,
                     label: 'Избранное',
-                    heroTag: 'hero_fav',
                     destination: favoritePhrasesPage,
                   ),
                   _AnimatedMenuButton(
                     icon: Icons.replay,
                     label: 'Повторение',
-                    heroTag: 'hero_repeat',
                     destination: chooseThemePageRoute,
                   ),
                   _AnimatedMenuButton(
-                    icon: Icons.add_circle_outline, // Иконка добавления
-                    label: 'Добавить фразу', // Изменено с "Настройки"
-                    heroTag: 'hero_add',
+                    icon: Icons.add_circle_outline,
+                    label: 'Добавить фразу',
                     destination: themeListPageRoute,
                   ),
                 ],
@@ -84,29 +74,28 @@ class StartPage extends StatelessWidget {
   }
 }
 
-// Переименованный класс с анимацией нажатия
 class _AnimatedMenuButton extends StatefulWidget {
-  final String heroTag;
   final IconData icon;
   final String label;
   final String destination;
+  final VoidCallback? onTapOverride;
 
   const _AnimatedMenuButton({
-    required this.heroTag,
     required this.icon,
     required this.label,
     required this.destination,
+    this.onTapOverride,
   });
 
   @override
   State<_AnimatedMenuButton> createState() => _AnimatedMenuButtonState();
 }
 
-class _AnimatedMenuButtonState extends State<_AnimatedMenuButton> 
+class _AnimatedMenuButtonState extends State<_AnimatedMenuButton>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
-  
+
   @override
   void initState() {
     super.initState();
@@ -114,12 +103,12 @@ class _AnimatedMenuButtonState extends State<_AnimatedMenuButton>
       vsync: this,
       duration: const Duration(milliseconds: 100),
     );
-    
+
     _scaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
   }
-  
+
   @override
   void dispose() {
     _controller.dispose();
@@ -132,7 +121,12 @@ class _AnimatedMenuButtonState extends State<_AnimatedMenuButton>
       onTapDown: (_) => _controller.forward(),
       onTapUp: (_) {
         _controller.reverse();
-        Navigator.pushNamed(context, widget.destination);
+
+        if (widget.onTapOverride != null) {
+          widget.onTapOverride!();
+        } else {
+          Navigator.pushNamed(context, widget.destination);
+        }
       },
       onTapCancel: () => _controller.reverse(),
       child: AnimatedBuilder(
@@ -156,26 +150,23 @@ class _AnimatedMenuButtonState extends State<_AnimatedMenuButton>
               splashColor: Colors.blue.withOpacity(0.3),
               highlightColor: Colors.blue.withOpacity(0.1),
               child: Center(
-                child: Hero(
-                  tag: widget.heroTag,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        widget.icon,
-                        size: 48,
-                        color: Colors.blue,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      widget.icon,
+                      size: 48,
+                      color: Colors.blue,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      widget.label,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        widget.label,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),

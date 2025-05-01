@@ -6,6 +6,13 @@ import 'package:bubonelka/classes/theme.dart';
 import 'package:bubonelka/classes/phrase_card.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
+// Додаємо enum для режимів
+enum LearningMode {
+  studyThemes,
+  repeatFavorites,
+  repeatRecommended,
+}
+
 class LearningPage extends StatefulWidget {
   const LearningPage({super.key});
 
@@ -15,6 +22,8 @@ class LearningPage extends StatefulWidget {
 
 class _LearningPageState extends State<LearningPage> {
   ThemeClass? _theme;
+  LearningMode _mode = LearningMode.studyThemes;
+
   List<PhraseCard> _phrases = [];
   int _currentIndex = 0;
   bool _isPauseBetween = false;
@@ -59,21 +68,35 @@ class _LearningPageState extends State<LearningPage> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final args = ModalRoute.of(context)?.settings.arguments;
-    if (args is ThemeClass) {
-      _theme = args;
+    if (args is Map) {
+      _theme = args['theme'] as ThemeClass?;
+      _mode = args['mode'] ?? LearningMode.studyThemes;
       _loadPhrases();
     }
   }
 
   Future<void> _loadPhrases() async {
-    if (_theme == null) return;
-    final dbHelper = DatabaseHelper();
+  final dbHelper = DatabaseHelper();
+
+  if (_mode == LearningMode.repeatFavorites) {
+    final phrases = await dbHelper.getPhrasesForTheme(themeName: favoritePhrasesSet);
+    setState(() {
+      _phrases = phrases;
+      _isLoading = false;
+    });
+  } else if (_theme != null) {
     final phrases = await dbHelper.getPhrasesForTheme(themeId: _theme!.id);
     setState(() {
       _phrases = phrases;
       _isLoading = false;
     });
+  } else {
+    // fallback если ни темы, ни избранного - завершить загрузку чтобы не висело колесо
+    setState(() {
+      _isLoading = false;
+    });
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -181,17 +204,27 @@ class _LearningPageState extends State<LearningPage> {
             icon: const Icon(Icons.speed),
             onPressed: _showSpeedDialog,
           ),
-          IconButton(
-            icon: const Icon(Icons.star_border),
-            onPressed: () {}, // TODO: избранное
-          ),
-          IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: () {}, // TODO: редактировать фразу
-          ),
+          if (_mode == LearningMode.studyThemes)
+            IconButton(
+              icon: const Icon(Icons.star_border),
+              onPressed: _addCurrentPhraseToFavorites,
+            ),
+          if (_mode == LearningMode.studyThemes)
+            IconButton(
+              icon: const Icon(Icons.edit),
+              onPressed: () {
+                // TODO: редактировать фразу
+              },
+            ),
           IconButton(
             icon: const Icon(Icons.delete_outline),
-            onPressed: () {}, // TODO: удалить фразу
+            onPressed: () {
+              if (_mode == LearningMode.repeatFavorites) {
+                _removeFromFavorites();
+              } else {
+                _markAsInactive();
+              }
+            },
           ),
         ],
       ),
@@ -340,6 +373,46 @@ class _LearningPageState extends State<LearningPage> {
     if (mounted) {
       Navigator.pop(context);
     }
+  }
+
+  void _addCurrentPhraseToFavorites() async {
+    final dbHelper = DatabaseHelper();
+    final currentPhrase = _phrases[_currentIndex];
+    await dbHelper.addPhraseToFavorites(currentPhrase);
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Фраза добавлена в "Избранное"')),
+    );
+  }
+
+  void _removeFromFavorites() async {
+    final dbHelper = DatabaseHelper();
+    final currentPhrase = _phrases[_currentIndex];
+
+    await dbHelper.deletePhraseFromFavorites(currentPhrase);
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Фраза удалена из "Избранного"')),
+    );
+
+    _phrases.removeAt(_currentIndex);
+    if (_phrases.isEmpty) {
+      setState(() {
+        _noMorePhrases = true;
+      });
+    } else {
+      setState(() {
+        _currentIndex = _currentIndex % _phrases.length;
+      });
+    }
+  }
+
+  void _markAsInactive() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Фраза помечена как неактивная')),
+    );
   }
 
   void _showSpeedDialog() {

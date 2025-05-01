@@ -74,127 +74,124 @@ class DatabaseHelper {
   Future<bool> isInitialized() async {
     final db = await database;
     final count = Sqflite.firstIntValue(
-      await db.rawQuery('SELECT COUNT(*) FROM $tableTheme')
-    );
+        await db.rawQuery('SELECT COUNT(*) FROM $tableTheme'));
     return count != null && count > 0;
   }
 
-Future<void> importThemesFromCsv(String assetPath, {int parentId = 0}) async {
-  final csvData = await rootBundle.loadString(assetPath);
-  final List<List<dynamic>> csvTable = const CsvToListConverter(
-    fieldDelimiter: ';', // точка с запятой
-    eol: '\n',
-  ).convert(csvData);
+  Future<void> importThemesFromCsv(String assetPath, {int parentId = 0}) async {
+    final csvData = await rootBundle.loadString(assetPath);
+    final List<List<dynamic>> csvTable = const CsvToListConverter(
+      fieldDelimiter: ';', // точка с запятой
+      eol: '\n',
+    ).convert(csvData);
 
-  print('📥 ====== CSV CONTENT FOR $assetPath ======');
-  for (int i = 0; i < csvTable.length; i++) {
-    print('📥 Line $i: ${csvTable[i].join(';')}');
-  }
-  print('📥 ======================================');
-
-  for (int i = 1; i < csvTable.length; i++) {
-    final parts = csvTable[i].map((e) => e.toString().trim()).toList();
-
-    if (parts.length < 3) {
-      logError('❌ Ошибка в строке CSV: недостаточно данных: $parts');
-      continue;
+    print('📥 ====== CSV CONTENT FOR $assetPath ======');
+    for (int i = 0; i < csvTable.length; i++) {
+      print('📥 Line $i: ${csvTable[i].join(';')}');
     }
+    print('📥 ======================================');
 
-    int position = i;
-    if (parts.length > 4) {
-      final parsed = int.tryParse(parts[4]);
-      if (parsed != null) {
-        position = parsed;
-        print('📥 Parsed position: $position for theme: ${parts[1]}');
-      } else {
-        logError('❌ Error parsing position for ${parts[1]}: ${parts[4]}');
+    for (int i = 1; i < csvTable.length; i++) {
+      final parts = csvTable[i].map((e) => e.toString().trim()).toList();
+
+      if (parts.length < 3) {
+        logError('❌ Ошибка в строке CSV: недостаточно данных: $parts');
+        continue;
+      }
+
+      int position = i;
+      if (parts.length > 4) {
+        final parsed = int.tryParse(parts[4]);
+        if (parsed != null) {
+          position = parsed;
+          print('📥 Parsed position: $position for theme: ${parts[1]}');
+        } else {
+          logError('❌ Error parsing position for ${parts[1]}: ${parts[4]}');
+        }
+      }
+
+      final theme = ThemeClass(
+        themeNameTranslation: parts[0],
+        themeName: parts[1],
+        fileName: parts[2],
+        numberOfRepetition: 0,
+        parentId: parentId,
+        levels: parts.length > 3 ? _parseDelimited(parts[3]) : ['A'],
+        imagePaths: [],
+        position: position,
+      );
+
+      final themeId = await insertTheme(theme);
+      logInfo(
+          '📥 Importing theme: ${theme.themeName} with position: ${theme.position}');
+
+      if (theme.fileName.isNotEmpty && theme.fileName.endsWith('.csv')) {
+        if (!theme.fileName.contains('index.csv')) {
+          await importPhraseCardsFromCsv(theme.copyWith(id: themeId));
+        } else {
+          await importThemesFromCsv('assets/csv/${theme.fileName}',
+              parentId: themeId);
+        }
       }
     }
+  }
 
-    final theme = ThemeClass(
-      themeNameTranslation: parts[0],
-      themeName: parts[1],
-      fileName: parts[2],
-      numberOfRepetition: 0,
-      parentId: parentId,
-      levels: parts.length > 3 ? _parseDelimited(parts[3]) : ['A'],
-      imagePaths: [],
-      position: position,
-    );
+  Future<void> importPhraseCardsFromCsv(ThemeClass theme) async {
+    final csvData = await rootBundle.loadString('assets/csv/${theme.fileName}');
+    final List<List<dynamic>> csvTable = const CsvToListConverter(
+      fieldDelimiter: ';', // точка с запятой
+      eol: '\n',
+    ).convert(csvData);
 
-    final themeId = await insertTheme(theme);
-    logInfo('📥 Importing theme: ${theme.themeName} with position: ${theme.position}');
+    print('📥 ====== PHRASES CSV FOR ${theme.themeName} ======');
+    for (int i = 0; i < csvTable.length; i++) {
+      print('📥 Line $i: ${csvTable[i].join(';')}');
+    }
+    print('📥 ======================================');
 
-    if (theme.fileName.isNotEmpty && theme.fileName.endsWith('.csv')) {
-      if (!theme.fileName.contains('index.csv')) {
-        await importPhraseCardsFromCsv(theme.copyWith(id: themeId));
-      } else {
-        await importThemesFromCsv('assets/csv/${theme.fileName}', parentId: themeId);
+    final db = await database;
+    final batch = db.batch();
+
+    for (int i = 1; i < csvTable.length; i++) {
+      final parts = csvTable[i].map((e) => e.toString().trim()).toList();
+
+      if (parts.length < 6) {
+        logError('❌ Ошибка в строке фраз CSV: недостаточно данных: $parts');
+        continue;
       }
-    }
-  }
-}
 
-Future<void> importPhraseCardsFromCsv(ThemeClass theme) async {
-  final csvData = await rootBundle.loadString('assets/csv/${theme.fileName}');
-  final List<List<dynamic>> csvTable = const CsvToListConverter(
-    fieldDelimiter: ';', // точка с запятой
-    eol: '\n',
-  ).convert(csvData);
+      final phraseCard = PhraseCard(
+        themeName: theme.themeName,
+        germanPhrases: parts.sublist(0, 3),
+        translationPhrases: parts.sublist(3, 6),
+        themeId: theme.id!,
+      );
 
-  print('📥 ====== PHRASES CSV FOR ${theme.themeName} ======');
-  for (int i = 0; i < csvTable.length; i++) {
-    print('📥 Line $i: ${csvTable[i].join(';')}');
-  }
-  print('📥 ======================================');
-
-  final db = await database;
-  final batch = db.batch();
-
-  for (int i = 1; i < csvTable.length; i++) {
-    final parts = csvTable[i].map((e) => e.toString().trim()).toList();
-
-    if (parts.length < 6) {
-      logError('❌ Ошибка в строке фраз CSV: недостаточно данных: $parts');
-      continue;
+      batch.insert(tablePhraseCard, phraseCard.toMap());
     }
 
-    final phraseCard = PhraseCard(
-      themeName: theme.themeName,
-      germanPhrases: parts.sublist(0, 3),
-      translationPhrases: parts.sublist(3, 6),
-      themeId: theme.id!,
-    );
-
-    batch.insert(tablePhraseCard, phraseCard.toMap());
+    await batch.commit(noResult: true);
+    logSuccess('✅ Фразы загружены для темы: ${theme.themeNameTranslation}');
   }
-
-  await batch.commit(noResult: true);
-  logSuccess('✅ Фразы загружены для темы: ${theme.themeNameTranslation}');
-}
-
 
   Future<List<ThemeClass>> getThemesByParentId(int parentId) async {
     final db = await database;
-    final result = await db.query(
-      tableTheme, 
-      where: 'parent_id = ?', 
-      whereArgs: [parentId], 
-      orderBy: 'position ASC'
-    );
-    
+    final result = await db.query(tableTheme,
+        where: 'parent_id = ?', whereArgs: [parentId], orderBy: 'position ASC');
+
     final themes = result.map((e) => ThemeClass.fromMap(e)).toList();
-    
+
     // Логируем для отладки
     logInfo('=== Themes for parent $parentId (ordered by position) ===');
     for (var theme in themes) {
       logInfo('${theme.themeName}: position = ${theme.position}');
     }
-    
+
     return themes;
   }
 
-  Future<List<PhraseCard>> getPhrasesForTheme({int? themeId, String? themeName}) async {
+  Future<List<PhraseCard>> getPhrasesForTheme(
+      {int? themeId, String? themeName}) async {
     final db = await database;
     List<Map<String, dynamic>> result = [];
 
@@ -216,18 +213,60 @@ Future<void> importPhraseCardsFromCsv(ThemeClass theme) async {
   }
 
   static List<String> _parseDelimited(String raw) {
-    return raw.split(RegExp(r'[;,/ ]')).map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    return raw
+        .split(RegExp(r'[;,/ ]'))
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+  }
+
+  Future<void> addPhraseToFavorites(PhraseCard phraseCard) async {
+    final db = await database;
+
+    // Шукаємо тему "Избранное"
+    ThemeClass? favoriteTheme = await getThemeByName('Избранное');
+
+    // Якщо такої теми ще немає, створюємо її
+    if (favoriteTheme == null) {
+      final newTheme = ThemeClass(
+        themeNameTranslation: 'Избранное',
+        themeName: 'Избранное',
+        fileName: '',
+        numberOfRepetition: 0,
+        parentId: 0,
+        levels: ['A'],
+        imagePaths: [],
+        position: 0,
+      );
+      final newThemeId = await insertTheme(newTheme);
+      favoriteTheme = newTheme.copyWith(id: newThemeId);
+    }
+
+    // Створюємо копію фрази з новими полями
+    final newPhrase = PhraseCard(
+      themeName: favoriteTheme.themeName,
+      germanPhrases: phraseCard.germanPhrases,
+      translationPhrases: phraseCard.translationPhrases,
+      themeId: favoriteTheme.id!,
+    );
+
+    await db.insert(tablePhraseCard, newPhrase.toMap());
+
+    logSuccess('✅ Фраза добавлена в "Избранное"');
   }
 
   Future<void> deletePhraseFromFavorites(PhraseCard phraseCard) async {
     final db = await database;
     await db.delete(
       tablePhraseCard,
-      where: 'theme_name = ? AND german_phrase1 = ? AND translation_phrase1 = ?',
+      where:
+          'theme_name = ? AND german_phrase1 = ? AND translation_phrase1 = ?',
       whereArgs: [
         favoritePhrasesSet,
         phraseCard.germanPhrases.isNotEmpty ? phraseCard.germanPhrases[0] : '',
-        phraseCard.translationPhrases.isNotEmpty ? phraseCard.translationPhrases[0] : '',
+        phraseCard.translationPhrases.isNotEmpty
+            ? phraseCard.translationPhrases[0]
+            : '',
       ],
     );
   }
@@ -243,8 +282,7 @@ Future<void> importPhraseCardsFromCsv(ThemeClass theme) async {
   Future<bool> hasSubthemes(int parentId) async {
     final db = await database;
     final count = Sqflite.firstIntValue(await db.rawQuery(
-      'SELECT COUNT(*) FROM $tableTheme WHERE parent_id = ?', [parentId]
-    ));
+        'SELECT COUNT(*) FROM $tableTheme WHERE parent_id = ?', [parentId]));
     return (count ?? 0) > 0;
   }
 
@@ -252,36 +290,36 @@ Future<void> importPhraseCardsFromCsv(ThemeClass theme) async {
     final db = await database;
     final result = await db.query(tableTheme);
     final themes = result.map((e) => ThemeClass.fromMap(e)).toList();
-    
+
     // Логируем все темы и их позиции для отладки
     logInfo('=== All Themes ===');
     for (var theme in themes) {
-      logInfo('ID: ${theme.id}, Name: ${theme.themeName}, ParentID: ${theme.parentId}, Position: ${theme.position}');
+      logInfo(
+          'ID: ${theme.id}, Name: ${theme.themeName}, ParentID: ${theme.parentId}, Position: ${theme.position}');
     }
-    
+
     return themes;
   }
 
   Future<ThemeClass?> getThemeByName(String themeNameTranslation) async {
-  final db = await database;
-  final result = await db.query(
-    tableTheme,
-    where: 'theme_name_translation = ?',
-    whereArgs: [themeNameTranslation],
-  );
+    final db = await database;
+    final result = await db.query(
+      tableTheme,
+      where: 'theme_name_translation = ?',
+      whereArgs: [themeNameTranslation],
+    );
 
-  if (result.isNotEmpty) {
-    return ThemeClass.fromMap(result.first);
-  } else {
-    return null;
+    if (result.isNotEmpty) {
+      return ThemeClass.fromMap(result.first);
+    } else {
+      return null;
+    }
   }
-}
 
-Future<int> insertTheme(ThemeClass theme) async {
-  final db = await database;
-  return await db.insert(tableTheme, theme.toMap());
-}
-
+  Future<int> insertTheme(ThemeClass theme) async {
+    final db = await database;
+    return await db.insert(tableTheme, theme.toMap());
+  }
 
   void logInfo(String message) => print('📥 $message');
   void logSuccess(String message) => print('✅ $message');

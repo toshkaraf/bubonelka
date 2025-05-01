@@ -1,3 +1,4 @@
+import 'package:bubonelka/pages/learning_page.dart';
 import 'package:flutter/material.dart';
 import 'package:bubonelka/utilites/database_helper.dart';
 import 'package:bubonelka/classes/settings_and_state.dart';
@@ -70,13 +71,15 @@ class _ChooseThemePageState extends State<ChooseThemePage> {
     return matchesQuery && matchesLevel;
   }
 
-  List<ThemeClass> _getChildren(int parentId) {
-    return allThemes
-        .where((theme) => theme.parentId == parentId)
-        .where(_matchesFilter)
-        .toList()
-      ..sort((a, b) => a.position.compareTo(b.position));
-  }
+List<ThemeClass> _getChildren(int parentId) {
+  return allThemes
+      .where((theme) =>
+          theme.parentId == parentId &&
+          theme.themeName != favoritePhrasesSet) // 🔥 Исключаем "Избранное"
+      .where(_matchesFilter)
+      .toList()
+    ..sort((a, b) => a.position.compareTo(b.position));
+}
 
   @override
   Widget build(BuildContext context) {
@@ -232,7 +235,10 @@ class _ChooseThemePageState extends State<ChooseThemePage> {
     Navigator.pushNamed(
       context,
       learningPageRoute,
-      arguments: theme,
+      arguments: {
+        'theme': theme,
+        'mode': LearningMode.studyThemes,
+      },
     );
   }
 }
