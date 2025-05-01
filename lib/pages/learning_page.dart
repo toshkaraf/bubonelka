@@ -39,6 +39,7 @@ class _LearningPageState extends State<LearningPage> {
 
     final settings = SettingsAndState.getInstance();
     _speechRateDe = settings.speechRateBase;
+    _isPauseBetween = settings.isPauseEnabled;
   }
 
   Future<void> _initTts() async {
@@ -144,17 +145,18 @@ class _LearningPageState extends State<LearningPage> {
           ),
         ),
         const SizedBox(height: 12),
-        if (_showingGermanYet) ...current.germanPhrases
-            .map((e) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: Text(
-                    e,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                        fontSize: 22, fontWeight: FontWeight.w500),
-                  ),
-                ))
-            .toList(),
+        if (_showingGermanYet)
+          ...current.germanPhrases
+              .map((e) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Text(
+                      e,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                          fontSize: 22, fontWeight: FontWeight.w500),
+                    ),
+                  ))
+              .toList(),
       ],
     );
   }
@@ -167,7 +169,13 @@ class _LearningPageState extends State<LearningPage> {
         children: [
           Switch(
             value: _isPauseBetween,
-            onChanged: (v) => setState(() => _isPauseBetween = v),
+            onChanged: (v) async {
+              final settings = SettingsAndState.getInstance();
+              await settings.setIsPauseEnabled(v);
+              setState(() {
+                _isPauseBetween = v;
+              });
+            },
           ),
           IconButton(
             icon: const Icon(Icons.speed),
@@ -220,8 +228,7 @@ class _LearningPageState extends State<LearningPage> {
 
   void _prevPhrase() {
     setState(() {
-      _currentIndex =
-          (_currentIndex - 1 + _phrases.length) % _phrases.length;
+      _currentIndex = (_currentIndex - 1 + _phrases.length) % _phrases.length;
       _resetState();
     });
   }
@@ -365,7 +372,8 @@ class _LearningPageState extends State<LearningPage> {
                       });
                     },
                   ),
-                  Text('Текущая скорость: ${tempSpeedFactor.toStringAsFixed(2)}x'),
+                  Text(
+                      'Текущая скорость: ${tempSpeedFactor.toStringAsFixed(2)}x'),
                 ],
               ),
               actions: [

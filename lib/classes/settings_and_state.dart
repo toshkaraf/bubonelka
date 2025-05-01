@@ -6,10 +6,19 @@ class SettingsAndState {
 
   String _currentThemeName = '';
   List<String> _chosenThemes = [];
+  bool _isPauseEnabled = false;
 
   // Новые настройки
   double _speechRateBase = speechRateTranslation;
   int _delayBeforeGerman = delayBeforGermanPhraseInSeconds;
+
+  bool get isPauseEnabled => _isPauseEnabled;
+
+  Future<void> setIsPauseEnabled(bool value) async {
+    _isPauseEnabled = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isPauseEnabled', value);
+  }
 
   SettingsAndState._internal();
 
@@ -38,7 +47,8 @@ class SettingsAndState {
   }
 
   bool isFavoriteSelected() {
-    return _chosenThemes.length == 1 && _chosenThemes.first == favoritePhrasesSet;
+    return _chosenThemes.length == 1 &&
+        _chosenThemes.first == favoritePhrasesSet;
   }
 
   Future<void> setSpeechRateBase(double rate) async {
@@ -59,5 +69,6 @@ class SettingsAndState {
         prefs.getDouble('speechRateBase') ?? speechRateTranslation;
     _delayBeforeGerman =
         prefs.getInt('delayBeforeGerman') ?? delayBeforGermanPhraseInSeconds;
+    _isPauseEnabled = prefs.getBool('isPauseEnabled') ?? false; // ✅ додаємо це
   }
 }
