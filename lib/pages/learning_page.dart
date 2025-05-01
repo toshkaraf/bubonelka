@@ -17,7 +17,6 @@ class _LearningPageState extends State<LearningPage> {
 
   bool _isPaused = false;
   bool _isPauseBetween = false;
-  bool _isGerman = false;
   double _speechRate = speechRateTranslation;
 
   @override
@@ -45,64 +44,116 @@ class _LearningPageState extends State<LearningPage> {
   @override
   Widget build(BuildContext context) {
     final phrase = phrasesSet.currentPhraseCard;
-    final visiblePhrases = _isGerman ? phrase.germanPhrases : phrase.translationPhrases;
+    final visiblePhrases = phrase.translationPhrases.isNotEmpty
+        ? phrase.translationPhrases
+        : ['Нет фраз для отображения'];
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Изучение фраз'),
         actions: [
-          IconButton(icon: const Icon(Icons.speed), onPressed: () => _showSpeedDialog(context)),
+          IconButton(
+            icon: const Icon(Icons.help_outline),
+            onPressed: () {
+              // TODO: Добавить вызов справки
+            },
+          ),
         ],
       ),
       body: Column(
         children: [
+          const SizedBox(height: 8),
+          _buildTopControls(),
           const SizedBox(height: 20),
-          _buildSwitches(),
-          const SizedBox(height: 20),
-          ...visiblePhrases.map((p) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: Text(p, style: const TextStyle(fontSize: 20), textAlign: TextAlign.center),
-          )),
-          const Spacer(),
+          Expanded(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: visiblePhrases
+                    .map(
+                      (p) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        child: Text(
+                          p,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ),
+          ),
           _buildBottomControls(),
         ],
       ),
     );
   }
 
-  Widget _buildSwitches() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Text('Пауза между языками'),
-        Switch(
-          value: _isPauseBetween,
-          onChanged: (v) => setState(() => _isPauseBetween = v),
-        ),
-      ],
+  Widget _buildTopControls() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          Switch(
+            value: _isPauseBetween,
+            onChanged: (v) => setState(() => _isPauseBetween = v),
+          ),
+          IconButton(
+            icon: const Icon(Icons.speed),
+            onPressed: () => _showSpeedDialog(context),
+          ),
+          IconButton(
+            icon: const Icon(Icons.menu_book),
+            onPressed: _showGrammar,
+          ),
+          IconButton(
+            icon: const Icon(Icons.star_border),
+            onPressed: () {
+              // TODO: Добавить/убрать из избранного
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.edit),
+            onPressed: () {
+              // TODO: Добавить действие редактирования
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            onPressed: () {
+              // TODO: Удалить фразу из изучения
+            },
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildBottomControls() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.grey[200],
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
-        ),
-      ),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 30, left: 20, right: 20, top: 10),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          IconButton(icon: const Icon(Icons.skip_previous), onPressed: _previousPhrase),
-          IconButton(
-            icon: Icon(_isPaused ? Icons.play_arrow : Icons.pause),
-            onPressed: _togglePause,
-          ),
-          IconButton(icon: const Icon(Icons.skip_next), onPressed: _nextPhrase),
+          _buildCircleButton(Icons.skip_previous, _previousPhrase),
+          _buildCircleButton(_isPaused ? Icons.play_arrow : Icons.pause, _togglePause),
+          _buildCircleButton(Icons.skip_next, _nextPhrase),
         ],
+      ),
+    );
+  }
+
+  Widget _buildCircleButton(IconData icon, VoidCallback onPressed) {
+    return Material(
+      color: Colors.blueAccent,
+      shape: const CircleBorder(),
+      elevation: 4,
+      child: IconButton(
+        icon: Icon(icon, color: Colors.white),
+        iconSize: 36,
+        onPressed: onPressed,
       ),
     );
   }
@@ -134,13 +185,15 @@ class _LearningPageState extends State<LearningPage> {
     _speakCurrentPhrase();
   }
 
+  void _showGrammar() {
+    // TODO: Реализовать вызов грамматической справки
+  }
+
   Future<void> _speakCurrentPhrase() async {
     final phrase = phrasesSet.currentPhraseCard;
-    _isGerman = false;
-    setState(() {});
 
     await flutterTts.setLanguage('ru-RU');
-    await flutterTts.setSpeechRate(speechRateTranslation);
+    await flutterTts.setSpeechRate(_speechRate);
     await flutterTts.setPitch(1.0);
 
     for (final p in phrase.translationPhrases) {
@@ -152,9 +205,6 @@ class _LearningPageState extends State<LearningPage> {
     if (_isPauseBetween) {
       await Future.delayed(const Duration(seconds: delayBeforGermanPhraseInSeconds));
     }
-
-    _isGerman = true;
-    setState(() {});
 
     await flutterTts.setLanguage('de-DE');
     await flutterTts.setSpeechRate(_speechRate);
@@ -176,7 +226,7 @@ class _LearningPageState extends State<LearningPage> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Выберите скорость речи'),
+        title: const Text('Скорость речи'),
         content: Slider(
           value: _speechRate,
           min: 0.1,

@@ -21,7 +21,6 @@ class _ChooseThemePageState extends State<ChooseThemePage> {
 
   List<ThemeClass> allThemes = [];
   final Set<int> expandedIds = {}; 
-  final Set<int> selectedThemeIds = {}; 
 
   bool filterA1A2 = true;
   bool filterB1B2 = true;
@@ -36,12 +35,6 @@ class _ChooseThemePageState extends State<ChooseThemePage> {
 
   Future<void> _loadAllThemes() async {
     final themes = await dbHelper.getAllThemes();
-    for (var theme in themes) {
-      if (theme.position == 0) {
-        print('⚠️ Тема без позиции: id=${theme.id}, name=${theme.themeNameTranslation}');
-      }
-      print('📂 Загрузка темы: id=${theme.id}, name=${theme.themeNameTranslation}, position=${theme.position}');
-    }
     setState(() {
       allThemes = themes..sort((a, b) => a.position.compareTo(b.position));
     });
@@ -101,16 +94,6 @@ class _ChooseThemePageState extends State<ChooseThemePage> {
           ),
         ],
       ),
-      floatingActionButton: selectedThemeIds.isNotEmpty
-          ? Hero(
-              tag: 'start_learning_hero',
-              child: FloatingActionButton.extended(
-                onPressed: _startLearning,
-                label: const Text('Начать изучение'),
-                icon: const Icon(Icons.play_arrow),
-              ),
-            )
-          : null,
     );
   }
 
@@ -197,22 +180,21 @@ class _ChooseThemePageState extends State<ChooseThemePage> {
         );
       } else {
         return ListTile(
-          leading: const Icon(Icons.menu_book, color: Colors.blueAccent),
-          title: Text(theme.themeName, style: const TextStyle(fontWeight: FontWeight.bold)),
-          subtitle: showTranslations ? Text(theme.themeNameTranslation, style: const TextStyle(color: Colors.grey)) : null,
-          trailing: Checkbox(
-            value: selectedThemeIds.contains(theme.id),
-            onChanged: (val) {
-              setState(() {
-                if (val == true) {
-                  selectedThemeIds.add(theme.id!);
-                } else {
-                  selectedThemeIds.remove(theme.id);
-                }
-              });
-            },
-          ),
-        );
+  leading: IconButton(
+    icon: const Icon(Icons.menu_book, color: Colors.blueAccent),
+    onPressed: () => _showGrammarDialog(theme.grammarFilePath),
+  ),
+  title: Text(theme.themeName, style: const TextStyle(fontWeight: FontWeight.bold)),
+  subtitle: showTranslations
+      ? Text(theme.themeNameTranslation, style: const TextStyle(color: Colors.grey))
+      : null,
+  trailing: IconButton(
+    icon: const Icon(Icons.play_arrow, color: Colors.green),
+    onPressed: () => _startSingleThemeLearning(theme.themeNameTranslation),
+  ),
+  onTap: () => _showGrammarDialog(theme.grammarFilePath),
+);
+
       }
     }).toList();
   }
@@ -229,11 +211,8 @@ class _ChooseThemePageState extends State<ChooseThemePage> {
     );
   }
 
-  void _startLearning() {
-    final selectedThemes = selectedThemeIds.map((id) =>
-      allThemes.firstWhere((theme) => theme.id == id, orElse: () => ThemeClass(themeNameTranslation: '', themeName: '', fileName: '', numberOfRepetition: 0, parentId: 0)).themeNameTranslation).toList();
-
-    SettingsAndState.getInstance().chosenThemes = selectedThemes;
+  void _startSingleThemeLearning(String themeNameTranslation) {
+    SettingsAndState.getInstance().chosenThemes = [themeNameTranslation];
     Navigator.pushNamed(context, learningPageRoute);
   }
 }
