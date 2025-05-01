@@ -20,7 +20,7 @@ class _ChooseThemePageState extends State<ChooseThemePage> {
   final TextEditingController _filterController = TextEditingController();
 
   List<ThemeClass> allThemes = [];
-  final Set<int> expandedIds = {}; 
+  final Set<int> expandedIds = {};
 
   bool filterA1A2 = true;
   bool filterB1B2 = true;
@@ -52,7 +52,8 @@ class _ChooseThemePageState extends State<ChooseThemePage> {
   void _expandMatchingThemes() {
     final query = _filterController.text.toLowerCase();
     for (var theme in allThemes) {
-      if (theme.themeName.toLowerCase().contains(query) || theme.themeNameTranslation.toLowerCase().contains(query)) {
+      if (theme.themeName.toLowerCase().contains(query) ||
+          theme.themeNameTranslation.toLowerCase().contains(query)) {
         expandedIds.add(theme.parentId);
       }
     }
@@ -62,8 +63,9 @@ class _ChooseThemePageState extends State<ChooseThemePage> {
     final query = _filterController.text.toLowerCase();
     final matchesQuery = theme.themeName.toLowerCase().contains(query) ||
         theme.themeNameTranslation.toLowerCase().contains(query);
-    final matchesLevel = (filterA1A2 && theme.levels.any((l) => l.startsWith('A')))
-        || (filterB1B2 && theme.levels.any((l) => l.startsWith('B')));
+    final matchesLevel =
+        (filterA1A2 && theme.levels.any((l) => l.startsWith('A'))) ||
+            (filterB1B2 && theme.levels.any((l) => l.startsWith('B')));
     if (query.isEmpty && filterA1A2 && filterB1B2) return true;
     return matchesQuery && matchesLevel;
   }
@@ -81,7 +83,11 @@ class _ChooseThemePageState extends State<ChooseThemePage> {
     return Scaffold(
       appBar: AppBar(
         title: Hero(tag: 'hero_new', child: Text(widget.parentTitle ?? 'Темы')),
-        leading: widget.parentId != 0 ? IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context)) : null,
+        leading: widget.parentId != 0
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => Navigator.pop(context))
+            : null,
       ),
       body: Column(
         children: [
@@ -163,9 +169,14 @@ class _ChooseThemePageState extends State<ChooseThemePage> {
       if (hasChildren) {
         final isExpanded = expandedIds.contains(theme.id);
         return ExpansionTile(
-          leading: Icon(isExpanded ? Icons.folder_open : Icons.folder, color: Colors.amber),
-          title: Text(theme.themeName, style: const TextStyle(fontWeight: FontWeight.bold)),
-          subtitle: showTranslations ? Text(theme.themeNameTranslation, style: const TextStyle(color: Colors.grey)) : null,
+          leading: Icon(isExpanded ? Icons.folder_open : Icons.folder,
+              color: Colors.amber),
+          title: Text(theme.themeName,
+              style: const TextStyle(fontWeight: FontWeight.bold)),
+          subtitle: showTranslations
+              ? Text(theme.themeNameTranslation,
+                  style: const TextStyle(color: Colors.grey))
+              : null,
           initiallyExpanded: isExpanded,
           onExpansionChanged: (expanded) {
             setState(() {
@@ -180,21 +191,22 @@ class _ChooseThemePageState extends State<ChooseThemePage> {
         );
       } else {
         return ListTile(
-  leading: IconButton(
-    icon: const Icon(Icons.menu_book, color: Colors.blueAccent),
-    onPressed: () => _showGrammarDialog(theme.grammarFilePath),
-  ),
-  title: Text(theme.themeName, style: const TextStyle(fontWeight: FontWeight.bold)),
-  subtitle: showTranslations
-      ? Text(theme.themeNameTranslation, style: const TextStyle(color: Colors.grey))
-      : null,
-  trailing: IconButton(
-    icon: const Icon(Icons.play_arrow, color: Colors.green),
-    onPressed: () => _startSingleThemeLearning(theme.themeNameTranslation),
-  ),
-  onTap: () => _showGrammarDialog(theme.grammarFilePath),
-);
-
+          leading: IconButton(
+            icon: const Icon(Icons.menu_book, color: Colors.blueAccent),
+            onPressed: () => _showGrammarDialog(theme.grammarFilePath),
+          ),
+          title: Text(theme.themeName,
+              style: const TextStyle(fontWeight: FontWeight.bold)),
+          subtitle: showTranslations
+              ? Text(theme.themeNameTranslation,
+                  style: const TextStyle(color: Colors.grey))
+              : null,
+          trailing: IconButton(
+            icon: const Icon(Icons.play_arrow, color: Colors.green),
+            onPressed: () => _startSingleThemeLearning(theme),
+          ),
+          onTap: () => _showGrammarDialog(theme.grammarFilePath),
+        );
       }
     }).toList();
   }
@@ -206,13 +218,21 @@ class _ChooseThemePageState extends State<ChooseThemePage> {
       builder: (context) => AlertDialog(
         title: const Text('Грамматическая справка'),
         content: SingleChildScrollView(child: Text(content)),
-        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Закрыть'))],
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Закрыть'))
+        ],
       ),
     );
   }
 
-  void _startSingleThemeLearning(String themeNameTranslation) {
-    SettingsAndState.getInstance().chosenThemes = [themeNameTranslation];
-    Navigator.pushNamed(context, learningPageRoute);
+  void _startSingleThemeLearning(ThemeClass theme) {
+    SettingsAndState.getInstance().chosenThemes = [theme.themeNameTranslation];
+    Navigator.pushNamed(
+      context,
+      learningPageRoute,
+      arguments: theme,
+    );
   }
 }

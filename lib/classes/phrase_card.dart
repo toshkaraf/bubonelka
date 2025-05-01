@@ -1,5 +1,3 @@
-// phrase_card.dart (обновлённый)
-import 'package:flutter_tts/flutter_tts.dart';
 class PhraseCard {
   final int? id;
   final String themeName;
@@ -8,8 +6,6 @@ class PhraseCard {
   final bool isActive;
   final bool isDeleted;
   final int themeId;
-
-  static final FlutterTts _flutterTts = FlutterTts();
 
   PhraseCard({
     this.id,
@@ -22,24 +18,24 @@ class PhraseCard {
   });
 
   factory PhraseCard.fromMap(Map<String, dynamic> map) {
-  return PhraseCard(
-    id: map['id'],
-    themeName: map['theme_name'] ?? '',
-    germanPhrases: [
-      (map['german_phrase1'] ?? '').toString(),
-      (map['german_phrase2'] ?? '').toString(),
-      (map['german_phrase3'] ?? '').toString(),
-    ].where((e) => e.isNotEmpty).toList(),
-    translationPhrases: [
-      (map['translation_phrase1'] ?? '').toString(),
-      (map['translation_phrase2'] ?? '').toString(),
-      (map['translation_phrase3'] ?? '').toString(),
-    ].where((e) => e.isNotEmpty).toList(),
-    isActive: map['is_active'] == 1,
-    isDeleted: map['is_deleted'] == 1,
-    themeId: map['theme_id'] ?? 0,
-  );
-}
+    return PhraseCard(
+      id: map['id'],
+      themeName: map['theme_name'] ?? '',
+      germanPhrases: [
+        (map['german_phrase1'] ?? '').toString(),
+        (map['german_phrase2'] ?? '').toString(),
+        (map['german_phrase3'] ?? '').toString(),
+      ].where((e) => e.isNotEmpty).toList(),
+      translationPhrases: [
+        (map['translation_phrase1'] ?? '').toString(),
+        (map['translation_phrase2'] ?? '').toString(),
+        (map['translation_phrase3'] ?? '').toString(),
+      ].where((e) => e.isNotEmpty).toList(),
+      isActive: map['is_active'] == 1,
+      isDeleted: map['is_deleted'] == 1,
+      themeId: map['theme_id'] ?? 0,
+    );
+  }
 
   Map<String, dynamic> toMap() {
     return {
@@ -56,17 +52,4 @@ class PhraseCard {
       'theme_id': themeId,
     };
   }
-
-  Future<void> speak(String phrase, String language, double speechRate) async {
-    await _flutterTts.setLanguage(language);
-    await _flutterTts.setSpeechRate(speechRate);
-    await _flutterTts.setPitch(1.0);
-    await _flutterTts.speak(phrase);
-    await _flutterTts.awaitSpeakCompletion(true);
-  }
-
-  void stopSpeech() {
-    _flutterTts.stop();
-  }
 }
-
