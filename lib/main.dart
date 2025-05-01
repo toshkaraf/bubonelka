@@ -1,3 +1,4 @@
+import 'package:bubonelka/classes/settings_and_state.dart';
 import 'package:bubonelka/pages/choose_theme.dart';
 import 'package:bubonelka/pages/favorite_page.dart';
 import 'package:bubonelka/pages/learning_page.dart';
@@ -11,8 +12,6 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/services.dart';
 
-
-
 // void main() async {
 //   WidgetsFlutterBinding.ensureInitialized();try {
 //     final data = await rootBundle.loadString('assets/csv/imperativ.csv');
@@ -21,7 +20,6 @@ import 'package:flutter/services.dart';
 //     print('Ошибка загрузки imperativ.csv: $e');
 //   }
 
- 
 //   try {
 //     final data1 = await rootBundle.loadString('assets/csv/konjunktionen/index.csv');
 //     print('CSV CONTENT:\n$data1');
@@ -37,6 +35,8 @@ import 'package:flutter/services.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await SettingsAndState.getInstance().loadSettings();
+
   print('🟢 main() запущен: старт приложения');
 
   try {
@@ -89,7 +89,6 @@ Future<void> initializeApp() async {
     rethrow; // Обязательно прокидываем ошибку дальше
   }
 }
-
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});

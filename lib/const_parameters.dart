@@ -6,6 +6,8 @@ const String csvFileOfCollection = 'assets/phrase_collection.csv';
 const String csvFileOfCollectionNew = 'phrase_collection_new.csv';
 const String csvFileReservCopy = 'reserve_collection_new.csv';
 
+const double russianSpeachRate = 0.8;
+
 // Общие константы
 const String noPath = '';
 
@@ -47,7 +49,7 @@ final PhraseCard neutralPhraseCard = PhraseCard(
 
 // Настройки воспроизведения
 const int delayBeforGermanPhraseInSeconds = 5;
-const double speechRateTranslation = 0.5;
+const double speechRateTranslation = 0.6;
 
 // Названия страниц
 const String editPhrasePageName = 'Редактируем фразы';

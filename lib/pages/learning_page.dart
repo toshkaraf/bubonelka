@@ -1,3 +1,5 @@
+import 'package:bubonelka/classes/settings_and_state.dart';
+import 'package:bubonelka/const_parameters.dart';
 import 'package:flutter/material.dart';
 import 'package:bubonelka/utilites/database_helper.dart';
 import 'package:bubonelka/classes/theme.dart';
@@ -21,17 +23,21 @@ class _LearningPageState extends State<LearningPage> {
   bool _showingGermanYet = false;
   int _repeatCount = 0;
 
-  // Новый экземпляр TTS
   late FlutterTts _flutterTts;
   bool _ttsInitialized = false;
+  bool _isCancelled = false;
 
-  bool _isCancelled = false; // <=== контроль выхода
+  final double _speechRateRu = speechRateTranslation;
+  double _speechRateDe = 0.5;
 
   @override
   void initState() {
     super.initState();
     _flutterTts = FlutterTts();
     _initTts();
+
+    final settings = SettingsAndState.getInstance();
+    _speechRateDe = settings.speechRateBase;
   }
 
   Future<void> _initTts() async {
@@ -42,7 +48,7 @@ class _LearningPageState extends State<LearningPage> {
 
   @override
   void dispose() {
-    _isCancelled = true; // <=== метка отмены
+    _isCancelled = true;
     _flutterTts.stop();
     super.dispose();
   }
@@ -108,7 +114,6 @@ class _LearningPageState extends State<LearningPage> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        // Русские фразы (всегда видны)
         ...current.translationPhrases
             .map((e) => Padding(
                   padding: const EdgeInsets.symmetric(vertical: 6),
@@ -120,9 +125,7 @@ class _LearningPageState extends State<LearningPage> {
                   ),
                 ))
             .toList(),
-
         const SizedBox(height: 12),
-        // Разделитель (всегда виден)
         Container(
           width: 60,
           height: 4,
@@ -132,8 +135,6 @@ class _LearningPageState extends State<LearningPage> {
           ),
         ),
         const SizedBox(height: 12),
-
-        // Немецкие фразы (появляются только после русского блока)
         if (_showingGermanYet) ...current.germanPhrases
             .map((e) => Padding(
                   padding: const EdgeInsets.symmetric(vertical: 6),
@@ -161,15 +162,7 @@ class _LearningPageState extends State<LearningPage> {
           ),
           IconButton(
             icon: const Icon(Icons.speed),
-            onPressed: () {}, // TODO: скорость
-          ),
-          IconButton(
-            icon: const Icon(Icons.menu_book),
-            onPressed: () {
-              if (_theme != null) {
-                _showGrammarDialog(_theme!.grammarFilePath);
-              }
-            },
+            onPressed: _showSpeedDialog,
           ),
           IconButton(
             icon: const Icon(Icons.star_border),
@@ -197,7 +190,7 @@ class _LearningPageState extends State<LearningPage> {
           _buildCircleButton(Icons.skip_previous, _prevPhrase),
           _buildCircleButton(
               _isPlaying ? Icons.pause : Icons.play_arrow, _togglePlay),
-          _buildCircleButton(Icons.skip_next, _nextPhrase),
+          _buildCircleButton(Icons.skip_next, () => _nextPhrase(auto: false)),
         ],
       ),
     );
@@ -224,18 +217,27 @@ class _LearningPageState extends State<LearningPage> {
     });
   }
 
-  void _nextPhrase() {
+  void _nextPhrase({bool auto = false}) {
     setState(() {
-      _currentIndex = (_currentIndex + 1) % _phrases.length;
+      if (_currentIndex + 1 < _phrases.length) {
+        _currentIndex++;
+      } else {
+        _isPlaying = false;
+        return;
+      }
       _resetState();
     });
+
+    if (auto) {
+      _startPlayback();
+    }
   }
 
   void _resetState() {
     _isPlaying = false;
     _repeatCount = 0;
     _showingGermanYet = false;
-    _isCancelled = true; // останавливаем полностью
+    _isCancelled = true;
     _flutterTts.stop();
   }
 
@@ -260,24 +262,30 @@ class _LearningPageState extends State<LearningPage> {
     setState(() {
       _isPlaying = true;
       _showingGermanYet = false;
-      _isCancelled = false; // сброс флага отмены
+      _isCancelled = false;
     });
 
     final phrase = _phrases[_currentIndex];
+    const phraseGap = Duration(milliseconds: 300);
+    final settings = SettingsAndState.getInstance();
+    final pauseSeconds = settings.delayBeforeGerman;
 
     // Проговариваем перевод один раз
     for (var translation in phrase.translationPhrases) {
       if (!_isPlaying || _isCancelled) return;
       await _flutterTts.setLanguage('ru-RU');
-      await _flutterTts.setSpeechRate(0.9);
+      await _flutterTts.setSpeechRate(_speechRateRu);
       await _flutterTts.setPitch(1.0);
       await _flutterTts.speak(translation);
-      if (_isPauseBetween) await Future.delayed(const Duration(seconds: 1));
+      if (_isPauseBetween) await Future.delayed(phraseGap);
     }
 
     if (!_isPlaying || _isCancelled) return;
 
-    // Показываем немецкий блок и начинаем повторение
+    if (_isPauseBetween) {
+      await Future.delayed(Duration(seconds: pauseSeconds));
+    }
+
     setState(() {
       _showingGermanYet = true;
     });
@@ -287,22 +295,76 @@ class _LearningPageState extends State<LearningPage> {
       for (var german in phrase.germanPhrases) {
         if (!_isPlaying || _isCancelled) return;
         await _flutterTts.setLanguage('de-DE');
-        await _flutterTts.setSpeechRate(0.8);
+        await _flutterTts.setSpeechRate(_speechRateDe);
         await _flutterTts.setPitch(1.0);
         await _flutterTts.speak(german);
-        if (_isPauseBetween) await Future.delayed(const Duration(seconds: 1));
+        if (_isPauseBetween) await Future.delayed(phraseGap);
       }
       _repeatCount++;
     }
 
     if (!_isPlaying || _isCancelled) return;
 
-    // Переходим к следующей фразе автоматически
-    _nextPhrase();
-    if (_isPlaying && !_isCancelled) {
-      await Future.delayed(const Duration(milliseconds: 300));
-      _startPlayback(); // автозапуск следующей
-    }
+    _nextPhrase(auto: true);
+  }
+
+  void _showSpeedDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final settings = SettingsAndState.getInstance();
+        final double savedSpeed = settings.speechRateBase;
+        double tempSpeedFactor = savedSpeed / 0.6;
+
+        const double minFactor = 0.3;
+        const double maxFactor = 1.5;
+
+        return StatefulBuilder(
+          builder: (context, setStateInside) {
+            return AlertDialog(
+              title: const Text('Регулировка скорости'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Slider(
+                    value: tempSpeedFactor,
+                    min: minFactor,
+                    max: maxFactor,
+                    divisions: 6,
+                    label: '${tempSpeedFactor.toStringAsFixed(2)}x',
+                    onChanged: (value) {
+                      setStateInside(() {
+                        tempSpeedFactor = value;
+                      });
+                    },
+                  ),
+                  Text('Текущая скорость: ${tempSpeedFactor.toStringAsFixed(2)}x'),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Отмена'),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    final newRealSpeed = tempSpeedFactor * 0.6;
+                    await settings.setSpeechRateBase(newRealSpeed);
+                    setState(() {
+                      _speechRateDe = newRealSpeed;
+                    });
+                    Navigator.pop(context);
+                  },
+                  child: const Text('OK'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   void _showGrammarDialog(String grammarPath) async {
