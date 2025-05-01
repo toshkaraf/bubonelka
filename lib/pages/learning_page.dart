@@ -22,6 +22,7 @@ class _LearningPageState extends State<LearningPage> {
   bool _isPlaying = false;
   bool _showingGermanYet = false;
   int _repeatCount = 0;
+  bool _noMorePhrases = false;
 
   late FlutterTts _flutterTts;
   bool _ttsInitialized = false;
@@ -110,6 +111,14 @@ class _LearningPageState extends State<LearningPage> {
   }
 
   Widget _buildPhraseContent() {
+    if (_noMorePhrases) {
+      return const Text(
+        'Фраз больше нет!\nЧто делаем дальше?',
+        textAlign: TextAlign.center,
+        style: TextStyle(fontSize: 22, fontWeight: FontWeight.w500),
+      );
+    }
+
     final current = _phrases[_currentIndex];
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -218,18 +227,21 @@ class _LearningPageState extends State<LearningPage> {
   }
 
   void _nextPhrase({bool auto = false}) {
-    setState(() {
-      if (_currentIndex + 1 < _phrases.length) {
+    if (_currentIndex + 1 < _phrases.length) {
+      setState(() {
         _currentIndex++;
-      } else {
-        _isPlaying = false;
-        return;
+        _resetState();
+      });
+      if (auto) {
+        _startPlayback();
       }
-      _resetState();
-    });
-
-    if (auto) {
-      _startPlayback();
+    } else {
+      setState(() {
+        _isPlaying = false;
+        _noMorePhrases = true;
+        _showingGermanYet = false;
+      });
+      _playNoMorePhrasesMessage();
     }
   }
 
@@ -306,6 +318,21 @@ class _LearningPageState extends State<LearningPage> {
     if (!_isPlaying || _isCancelled) return;
 
     _nextPhrase(auto: true);
+  }
+
+  Future<void> _playNoMorePhrasesMessage() async {
+    const String message = 'Фраз больше нет! Что делаем дальше?';
+
+    await _flutterTts.setLanguage('ru-RU');
+    await _flutterTts.setSpeechRate(_speechRateRu);
+    await _flutterTts.setPitch(1.0);
+    await _flutterTts.speak(message);
+
+    await _flutterTts.awaitSpeakCompletion(true);
+
+    if (mounted) {
+      Navigator.pop(context);
+    }
   }
 
   void _showSpeedDialog() {
