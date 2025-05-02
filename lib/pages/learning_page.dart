@@ -1,12 +1,12 @@
 import 'package:bubonelka/classes/settings_and_state.dart';
 import 'package:bubonelka/const_parameters.dart';
+import 'package:bubonelka/rutes.dart';
 import 'package:flutter/material.dart';
 import 'package:bubonelka/utilites/database_helper.dart';
 import 'package:bubonelka/classes/theme.dart';
 import 'package:bubonelka/classes/phrase_card.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
-// Додаємо enum для режимів
 enum LearningMode {
   studyThemes,
   repeatFavorites,
@@ -23,6 +23,7 @@ class LearningPage extends StatefulWidget {
 class _LearningPageState extends State<LearningPage> {
   ThemeClass? _theme;
   LearningMode _mode = LearningMode.studyThemes;
+  List<ThemeClass> _themeList = [];
 
   List<PhraseCard> _phrases = [];
   int _currentIndex = 0;
@@ -31,7 +32,6 @@ class _LearningPageState extends State<LearningPage> {
   bool _isPlaying = false;
   bool _showingGermanYet = false;
   int _repeatCount = 0;
-  bool _noMorePhrases = false;
 
   late FlutterTts _flutterTts;
   bool _ttsInitialized = false;
@@ -39,6 +39,30 @@ class _LearningPageState extends State<LearningPage> {
 
   final double _speechRateRu = speechRateTranslation;
   double _speechRateDe = 0.5;
+
+  final List<Color> ratingColors = [
+    Colors.red,
+    Colors.deepOrange,
+    Colors.amber,
+    Colors.lightGreen,
+    Colors.green,
+  ];
+
+  final List<String> labels = [
+    'Очень трудно',
+    'Трудно',
+    'Средне',
+    'Легко',
+    'Очень легко'
+  ];
+
+  final List<String> nextIntervals = [
+    'Следующее повторение через 1 день',
+    'Следующее повторение через 3 дня',
+    'Следующее повторение через 7 дней',
+    'Следующее повторение через 14 дней',
+    'Следующее повторение через 30 дней'
+  ];
 
   @override
   void initState() {
@@ -71,32 +95,218 @@ class _LearningPageState extends State<LearningPage> {
     if (args is Map) {
       _theme = args['theme'] as ThemeClass?;
       _mode = args['mode'] ?? LearningMode.studyThemes;
+      if (args['themeList'] != null && args['themeList'] is List) {
+        _themeList =
+            (args['themeList'] as List).whereType<ThemeClass>().toList();
+      }
       _loadPhrases();
     }
   }
 
   Future<void> _loadPhrases() async {
-  final dbHelper = DatabaseHelper();
+    final dbHelper = DatabaseHelper();
 
-  if (_mode == LearningMode.repeatFavorites) {
-    final phrases = await dbHelper.getPhrasesForTheme(themeName: favoritePhrasesSet);
-    setState(() {
-      _phrases = phrases;
-      _isLoading = false;
-    });
-  } else if (_theme != null) {
-    final phrases = await dbHelper.getPhrasesForTheme(themeId: _theme!.id);
-    setState(() {
-      _phrases = phrases;
-      _isLoading = false;
-    });
-  } else {
-    // fallback если ни темы, ни избранного - завершить загрузку чтобы не висело колесо
-    setState(() {
-      _isLoading = false;
-    });
+    if (_mode == LearningMode.repeatFavorites) {
+      final phrases =
+          await dbHelper.getPhrasesForTheme(themeName: favoritePhrasesSet);
+      setState(() {
+        _phrases = phrases;
+        _isLoading = false;
+      });
+    } else if (_theme != null) {
+      final phrases = await dbHelper.getPhrasesForTheme(themeId: _theme!.id);
+      setState(() {
+        _phrases = phrases;
+        _isLoading = false;
+      });
+    } else {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
-}
+
+  void _nextPhrase({bool auto = false}) {
+    if (_currentIndex + 1 < _phrases.length) {
+      setState(() {
+        _currentIndex++;
+        _resetState();
+      });
+      if (auto) {
+        _startPlayback();
+      }
+    } else {
+      // ✔ Гарантированно останавливаем проигрывание
+      setState(() {
+        _isPlaying = false;
+        _showingGermanYet = false;
+      });
+
+      if (auto) {
+        // 💡 Если вызов из автоцикла, проверяем, нужно ли что-то дополнительно завершить
+        if (_mode == LearningMode.repeatFavorites) {
+          // Это авто-следующий шаг в Избранном — сразу завершаем, не даём повторно воспроизвести
+          _showEndOfFavoritesDialog();
+          return;
+        }
+      }
+
+      // ✴️ Основная логика для остальных режимов:
+      if (_mode == LearningMode.repeatRecommended) {
+        _showRatingDialog(onFinish: _showNextOrChooseDialog);
+        _speakRussian('Как вам эта тема?');
+      } else {
+        _showRatingDialog(onFinish: () {
+          Navigator.pop(context);
+        });
+        _speakRussian('Как вам эта тема?');
+      }
+    }
+  }
+
+  void _showRatingDialog({VoidCallback? onFinish}) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Как вам эта тема?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: List.generate(5, (index) {
+            return Card(
+              child: ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: ratingColors[index],
+                  child: Text('${index + 1}',
+                      style: const TextStyle(color: Colors.white)),
+                ),
+                title: Text(labels[index]),
+                subtitle: Padding(
+                  padding: const EdgeInsets.only(top: 4.0),
+                  child: Text(
+                    nextIntervals[index],
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ),
+                onTap: () async {
+                  Navigator.pop(context);
+                  if (_theme != null) {
+                    await DatabaseHelper()
+                        .updateRepetitionSchedule(_theme!, index + 1);
+                  }
+                  if (onFinish != null) {
+                    onFinish();
+                  }
+                },
+              ),
+            );
+          }),
+        ),
+      ),
+    );
+  }
+
+  void _showEndOfFavoritesDialog() {
+    _flutterTts.stop();
+    setState(() {
+      _isPlaying = false;
+    });
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Повтор завершён'),
+        content: const Text('Фраз для повторения больше нет.'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pushNamedAndRemoveUntil(
+                  context, startRoute, (route) => false);
+            },
+            child: const Text('Назад'),
+          ),
+        ],
+      ),
+    );
+    _speakRussian('Фраз для повторения больше нет.');
+  }
+
+  void _showNextOrChooseDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Что дальше?'),
+        content: const Text('Выберите действие:'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pop(context);
+            },
+            child: const Text('Выбрать тему'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _goToNextTheme();
+            },
+            child: const Text('Следующая тема'),
+          ),
+        ],
+      ),
+    );
+    _speakRussian('Что дальше? Выберите действие.');
+  }
+
+  void _goToNextTheme() {
+    if (_themeList.isEmpty || _theme == null) return;
+
+    final currentIndex = _themeList.indexWhere((t) => t.id == _theme!.id);
+    if (currentIndex == -1 || currentIndex + 1 >= _themeList.length) {
+      _showNoMoreThemesDialog();
+    } else {
+      final nextTheme = _themeList[currentIndex + 1];
+      Navigator.pushReplacementNamed(
+        context,
+        learningPageRoute,
+        arguments: {
+          'theme': nextTheme,
+          'mode': LearningMode.repeatRecommended,
+          'themeList': _themeList,
+        },
+      );
+    }
+  }
+
+  void _showNoMoreThemesDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Темы завершены'),
+        content: const Text('Больше тем для повторения нет.'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pop(context);
+            },
+            child: const Text('Назад'),
+          ),
+        ],
+      ),
+    );
+    _speakRussian('Больше тем для повторения нет.');
+  }
+
+  Future<void> _speakRussian(String text) async {
+    await _flutterTts.setLanguage('ru-RU');
+    await _flutterTts.setSpeechRate(_speechRateRu);
+    await _flutterTts.setPitch(1.0);
+    _flutterTts.speak(text);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -123,11 +333,7 @@ class _LearningPageState extends State<LearningPage> {
                     const SizedBox(height: 8),
                     _buildTopControls(),
                     const SizedBox(height: 20),
-                    Expanded(
-                      child: Center(
-                        child: _buildPhraseContent(),
-                      ),
-                    ),
+                    Expanded(child: Center(child: _buildPhraseContent())),
                     _buildBottomControls(),
                   ],
                 ),
@@ -135,51 +341,32 @@ class _LearningPageState extends State<LearningPage> {
   }
 
   Widget _buildPhraseContent() {
-    if (_noMorePhrases) {
-      return const Text(
-        'Фраз больше нет!\nЧто делаем дальше?',
-        textAlign: TextAlign.center,
-        style: TextStyle(fontSize: 22, fontWeight: FontWeight.w500),
-      );
-    }
-
     final current = _phrases[_currentIndex];
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        ...current.translationPhrases
-            .map((e) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: Text(
-                    e,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                        fontSize: 22, fontWeight: FontWeight.w500),
-                  ),
-                ))
-            .toList(),
+        ...current.translationPhrases.map((e) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Text(
+                e,
+                textAlign: TextAlign.center,
+                style:
+                    const TextStyle(fontSize: 22, fontWeight: FontWeight.w500),
+              ),
+            )),
         const SizedBox(height: 12),
-        Container(
-          width: 60,
-          height: 4,
-          decoration: BoxDecoration(
-            color: Colors.blueAccent,
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
+        Container(width: 60, height: 4, color: Colors.blueAccent),
         const SizedBox(height: 12),
         if (_showingGermanYet)
-          ...current.germanPhrases
-              .map((e) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 6),
-                    child: Text(
-                      e,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                          fontSize: 22, fontWeight: FontWeight.w500),
-                    ),
-                  ))
-              .toList(),
+          ...current.germanPhrases.map((e) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Text(
+                  e,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                      fontSize: 22, fontWeight: FontWeight.w500),
+                ),
+              )),
       ],
     );
   }
@@ -201,21 +388,16 @@ class _LearningPageState extends State<LearningPage> {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.speed),
-            onPressed: _showSpeedDialog,
-          ),
+              icon: const Icon(Icons.speed), onPressed: _showSpeedDialog),
+          IconButton(
+              icon: const Icon(Icons.menu_book),
+              onPressed: () {/* TODO: реализация позже */}),
           if (_mode == LearningMode.studyThemes)
             IconButton(
-              icon: const Icon(Icons.star_border),
-              onPressed: _addCurrentPhraseToFavorites,
-            ),
+                icon: const Icon(Icons.star_border),
+                onPressed: _addCurrentPhraseToFavorites),
           if (_mode == LearningMode.studyThemes)
-            IconButton(
-              icon: const Icon(Icons.edit),
-              onPressed: () {
-                // TODO: редактировать фразу
-              },
-            ),
+            IconButton(icon: const Icon(Icons.edit), onPressed: () {}),
           IconButton(
             icon: const Icon(Icons.delete_outline),
             onPressed: () {
@@ -266,25 +448,6 @@ class _LearningPageState extends State<LearningPage> {
     });
   }
 
-  void _nextPhrase({bool auto = false}) {
-    if (_currentIndex + 1 < _phrases.length) {
-      setState(() {
-        _currentIndex++;
-        _resetState();
-      });
-      if (auto) {
-        _startPlayback();
-      }
-    } else {
-      setState(() {
-        _isPlaying = false;
-        _noMorePhrases = true;
-        _showingGermanYet = false;
-      });
-      _playNoMorePhrasesMessage();
-    }
-  }
-
   void _resetState() {
     _isPlaying = false;
     _repeatCount = 0;
@@ -294,21 +457,24 @@ class _LearningPageState extends State<LearningPage> {
   }
 
   void _togglePlay() {
-    if (_isPlaying) {
-      _pausePlayback();
-    } else {
-      _startPlayback();
-    }
+    _isPlaying ? _pausePlayback() : _startPlayback();
   }
 
   void _pausePlayback() {
-    setState(() {
-      _isPlaying = false;
-    });
+    setState(() => _isPlaying = false);
     _flutterTts.stop();
   }
 
   Future<void> _startPlayback() async {
+    if (_mode == LearningMode.repeatFavorites &&
+        _currentIndex >= _phrases.length - 1) {
+      _flutterTts.stop();
+      setState(() {
+        _isPlaying = false;
+      });
+      _showEndOfFavoritesDialog();
+      return;
+    }
     if (!_ttsInitialized) await _initTts();
 
     setState(() {
@@ -322,7 +488,6 @@ class _LearningPageState extends State<LearningPage> {
     final settings = SettingsAndState.getInstance();
     final pauseSeconds = settings.delayBeforeGerman;
 
-    // Проговариваем перевод один раз
     for (var translation in phrase.translationPhrases) {
       if (!_isPlaying || _isCancelled) return;
       await _flutterTts.setLanguage('ru-RU');
@@ -333,14 +498,9 @@ class _LearningPageState extends State<LearningPage> {
     }
 
     if (!_isPlaying || _isCancelled) return;
+    if (_isPauseBetween) await Future.delayed(Duration(seconds: pauseSeconds));
 
-    if (_isPauseBetween) {
-      await Future.delayed(Duration(seconds: pauseSeconds));
-    }
-
-    setState(() {
-      _showingGermanYet = true;
-    });
+    setState(() => _showingGermanYet = true);
 
     _repeatCount = 0;
     while (_isPlaying && !_isCancelled && _repeatCount < 7) {
@@ -355,23 +515,23 @@ class _LearningPageState extends State<LearningPage> {
       _repeatCount++;
     }
 
-    if (!_isPlaying || _isCancelled) return;
-
-    _nextPhrase(auto: true);
-  }
-
-  Future<void> _playNoMorePhrasesMessage() async {
-    const String message = 'Фраз больше нет! Что делаем дальше?';
-
-    await _flutterTts.setLanguage('ru-RU');
-    await _flutterTts.setSpeechRate(_speechRateRu);
-    await _flutterTts.setPitch(1.0);
-    await _flutterTts.speak(message);
-
-    await _flutterTts.awaitSpeakCompletion(true);
-
-    if (mounted) {
-      Navigator.pop(context);
+    if (_isPlaying && !_isCancelled) {
+      if (_mode == LearningMode.repeatFavorites) {
+        if (_currentIndex + 1 < _phrases.length) {
+          _nextPhrase(auto: true);
+        } else {
+          setState(() {
+            _isPlaying = false; // жёстко выключаем воспроизведение
+          });
+          _showEndOfFavoritesDialog();
+        }
+      } else {
+        if (_currentIndex + 1 < _phrases.length) {
+          _nextPhrase(auto: true);
+        } else {
+          _nextPhrase(auto: false);
+        }
+      }
     }
   }
 
@@ -387,9 +547,12 @@ class _LearningPageState extends State<LearningPage> {
   }
 
   void _removeFromFavorites() async {
+    _flutterTts.stop();
+    _isCancelled = true;
+    _isPlaying = false;
+
     final dbHelper = DatabaseHelper();
     final currentPhrase = _phrases[_currentIndex];
-
     await dbHelper.deletePhraseFromFavorites(currentPhrase);
 
     if (!mounted) return;
@@ -399,13 +562,12 @@ class _LearningPageState extends State<LearningPage> {
 
     _phrases.removeAt(_currentIndex);
     if (_phrases.isEmpty) {
-      setState(() {
-        _noMorePhrases = true;
-      });
+      _showEndOfFavoritesDialog();
     } else {
       setState(() {
         _currentIndex = _currentIndex % _phrases.length;
       });
+      _startPlayback(); // сразу продолжаем проигрывание
     }
   }
 
@@ -439,11 +601,8 @@ class _LearningPageState extends State<LearningPage> {
                     max: maxFactor,
                     divisions: 6,
                     label: '${tempSpeedFactor.toStringAsFixed(2)}x',
-                    onChanged: (value) {
-                      setStateInside(() {
-                        tempSpeedFactor = value;
-                      });
-                    },
+                    onChanged: (value) =>
+                        setStateInside(() => tempSpeedFactor = value),
                   ),
                   Text(
                       'Текущая скорость: ${tempSpeedFactor.toStringAsFixed(2)}x'),
@@ -451,18 +610,13 @@ class _LearningPageState extends State<LearningPage> {
               ),
               actions: [
                 TextButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                  child: const Text('Отмена'),
-                ),
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Отмена')),
                 TextButton(
                   onPressed: () async {
                     final newRealSpeed = tempSpeedFactor * 0.6;
                     await settings.setSpeechRateBase(newRealSpeed);
-                    setState(() {
-                      _speechRateDe = newRealSpeed;
-                    });
+                    setState(() => _speechRateDe = newRealSpeed);
                     Navigator.pop(context);
                   },
                   child: const Text('OK'),

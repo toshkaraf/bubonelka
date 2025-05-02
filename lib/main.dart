@@ -3,35 +3,11 @@ import 'package:bubonelka/pages/choose_theme.dart';
 import 'package:bubonelka/pages/favorite_page.dart';
 import 'package:bubonelka/pages/learning_page.dart';
 import 'package:bubonelka/pages/loading_screen.dart';
-import 'package:bubonelka/pages/playlists_list%20_page.dart';
 import 'package:bubonelka/pages/start_page.dart';
-import 'package:bubonelka/pages/theme_list_page.dart';
 import 'package:bubonelka/rutes.dart';
 import 'package:bubonelka/utilites/database_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter/services.dart';
-
-// void main() async {
-//   WidgetsFlutterBinding.ensureInitialized();try {
-//     final data = await rootBundle.loadString('assets/csv/imperativ.csv');
-//     print('CSV CONTENT:\n$data');
-//   } catch (e) {
-//     print('Ошибка загрузки imperativ.csv: $e');
-//   }
-
-//   try {
-//     final data1 = await rootBundle.loadString('assets/csv/konjunktionen/index.csv');
-//     print('CSV CONTENT:\n$data1');
-//   } catch (e) {
-//     print('Ошибка загрузки konjuktionen/index.csv: $e');
-//   }
-
-//   // Проверка первого запуска и инициализация БД
-//   await initializeApp();
-
-//   runApp(const MyApp());
-// }
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

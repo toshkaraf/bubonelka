@@ -11,7 +11,7 @@ import 'package:flutter/services.dart';
 
 class DatabaseHelper {
   static const _dbName = 'app_database.db';
-  static const _dbVersion = 1;
+  static const _dbVersion = 2; // ⬅️ увеличили версию для миграции
 
   static const tableTheme = 'themes';
   static const tablePhraseCard = 'phrase_cards';
@@ -39,6 +39,8 @@ class DatabaseHelper {
             file_name TEXT,
             number_of_repetition INTEGER,
             time_of_last_repetition TEXT,
+            next_repetition_date TEXT,
+            ease_factor REAL DEFAULT 2.5,
             parent_id INTEGER,
             level TEXT,
             image_paths TEXT,
@@ -62,6 +64,12 @@ class DatabaseHelper {
           );
         ''');
       },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute('ALTER TABLE $tableTheme ADD COLUMN next_repetition_date TEXT;');
+          await db.execute('ALTER TABLE $tableTheme ADD COLUMN ease_factor REAL DEFAULT 2.5;');
+        }
+      },
     );
   }
 
@@ -81,7 +89,7 @@ class DatabaseHelper {
   Future<void> importThemesFromCsv(String assetPath, {int parentId = 0}) async {
     final csvData = await rootBundle.loadString(assetPath);
     final List<List<dynamic>> csvTable = const CsvToListConverter(
-      fieldDelimiter: ';', // точка с запятой
+      fieldDelimiter: ';',
       eol: '\n',
     ).convert(csvData);
 
@@ -139,7 +147,7 @@ class DatabaseHelper {
   Future<void> importPhraseCardsFromCsv(ThemeClass theme) async {
     final csvData = await rootBundle.loadString('assets/csv/${theme.fileName}');
     final List<List<dynamic>> csvTable = const CsvToListConverter(
-      fieldDelimiter: ';', // точка с запятой
+      fieldDelimiter: ';',
       eol: '\n',
     ).convert(csvData);
 
@@ -176,17 +184,18 @@ class DatabaseHelper {
 
   Future<List<ThemeClass>> getThemesByParentId(int parentId) async {
     final db = await database;
-    final result = await db.query(tableTheme,
-        where: 'parent_id = ?', whereArgs: [parentId], orderBy: 'position ASC');
+    final result = await db.query(
+      tableTheme,
+      where: 'parent_id = ?',
+      whereArgs: [parentId],
+      orderBy: 'position ASC',
+    );
 
     final themes = result.map((e) => ThemeClass.fromMap(e)).toList();
-
-    // Логируем для отладки
     logInfo('=== Themes for parent $parentId (ordered by position) ===');
     for (var theme in themes) {
       logInfo('${theme.themeName}: position = ${theme.position}');
     }
-
     return themes;
   }
 
@@ -223,10 +232,8 @@ class DatabaseHelper {
   Future<void> addPhraseToFavorites(PhraseCard phraseCard) async {
     final db = await database;
 
-    // Шукаємо тему "Избранное"
     ThemeClass? favoriteTheme = await getThemeByName('Избранное');
 
-    // Якщо такої теми ще немає, створюємо її
     if (favoriteTheme == null) {
       final newTheme = ThemeClass(
         themeNameTranslation: 'Избранное',
@@ -242,7 +249,6 @@ class DatabaseHelper {
       favoriteTheme = newTheme.copyWith(id: newThemeId);
     }
 
-    // Створюємо копію фрази з новими полями
     final newPhrase = PhraseCard(
       themeName: favoriteTheme.themeName,
       germanPhrases: phraseCard.germanPhrases,
@@ -251,7 +257,6 @@ class DatabaseHelper {
     );
 
     await db.insert(tablePhraseCard, newPhrase.toMap());
-
     logSuccess('✅ Фраза добавлена в "Избранное"');
   }
 
@@ -291,13 +296,11 @@ class DatabaseHelper {
     final result = await db.query(tableTheme);
     final themes = result.map((e) => ThemeClass.fromMap(e)).toList();
 
-    // Логируем все темы и их позиции для отладки
     logInfo('=== All Themes ===');
     for (var theme in themes) {
       logInfo(
           'ID: ${theme.id}, Name: ${theme.themeName}, ParentID: ${theme.parentId}, Position: ${theme.position}');
     }
-
     return themes;
   }
 
@@ -319,6 +322,63 @@ class DatabaseHelper {
   Future<int> insertTheme(ThemeClass theme) async {
     final db = await database;
     return await db.insert(tableTheme, theme.toMap());
+  }
+
+  /// ✅ Новый метод: обновляет интервалы повторения после оценки темы
+  Future<void> updateRepetitionSchedule(ThemeClass theme, int rating) async {
+    final db = await database;
+
+    final baseIntervals = [1, 3, 7, 14, 30, 90];
+    final multipliers = {
+      1: 0.5,
+      2: 0.7,
+      3: 1.0,
+      4: 1.3,
+      5: 1.7,
+    };
+
+    int nextRepetitionStage =
+        (theme.numberOfRepetition + 1).clamp(1, baseIntervals.length);
+    int baseInterval = baseIntervals[nextRepetitionStage - 1];
+    double multiplier = multipliers[rating] ?? 1.0;
+
+    double newEaseFactor = theme.easeFactor +
+        (0.1 - (5 - rating) * (0.08 + (5 - rating) * 0.02));
+    if (newEaseFactor < 1.3) newEaseFactor = 1.3;
+
+    int finalIntervalDays = (baseInterval * multiplier * newEaseFactor).round();
+    final nextDate = DateTime.now().add(Duration(days: finalIntervalDays));
+
+    await db.update(
+      tableTheme,
+      {
+        'number_of_repetition': nextRepetitionStage,
+        'ease_factor': newEaseFactor,
+        'time_of_last_repetition': DateTime.now().toIso8601String(),
+        'next_repetition_date': nextDate.toIso8601String(),
+      },
+      where: 'id = ?',
+      whereArgs: [theme.id],
+    );
+
+    logSuccess(
+      '✅ Интервал обновлён: "${theme.themeNameTranslation}", '
+      'следующее повторение через $finalIntervalDays дней '
+      '(Стадия: $nextRepetitionStage, EF: ${newEaseFactor.toStringAsFixed(2)})',
+    );
+  }
+
+  /// ✅ Новый метод: возвращает все темы, готовые к повторению
+  Future<List<ThemeClass>> getDueThemes() async {
+    final db = await database;
+    final now = DateTime.now().toIso8601String();
+    final result = await db.query(
+      tableTheme,
+      where: 'next_repetition_date IS NOT NULL AND next_repetition_date <= ?',
+      whereArgs: [now],
+      orderBy: 'next_repetition_date ASC',
+    );
+    return result.map((e) => ThemeClass.fromMap(e)).toList();
   }
 
   void logInfo(String message) => print('📥 $message');
