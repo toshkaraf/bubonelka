@@ -169,7 +169,7 @@ class _LearningPageState extends State<LearningPage> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: const Text('Как вам эта тема?'),
+        title: const Text('Как тебе эта тема?'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: List.generate(5, (index) {
@@ -184,7 +184,9 @@ class _LearningPageState extends State<LearningPage> {
                 subtitle: Padding(
                   padding: const EdgeInsets.only(top: 4.0),
                   child: Text(
-                    nextIntervals[index],
+                    _theme != null
+                        ? 'Следующее повторение через ${_theme!.predictNextIntervalMinutes(index + 1).toCompactTime()}'
+                        : '',
                     style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                 ),

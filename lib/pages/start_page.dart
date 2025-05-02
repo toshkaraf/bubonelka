@@ -57,7 +57,7 @@ class StartPage extends StatelessWidget {
                   _AnimatedMenuButton(
                     icon: Icons.replay,
                     label: 'Повторение',
-                    destination: chooseThemePageRoute,
+                    destination: repeatRecommendedPage,
                   ),
                   _AnimatedMenuButton(
                     icon: Icons.add_circle_outline,

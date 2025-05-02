@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 class ThemeClass {
   final int? id;
   final String themeNameTranslation;
@@ -106,3 +108,115 @@ extension ThemeClassExtensions on ThemeClass {
     return DateTime.now().isAfter(nextDate);
   }
 }
+
+extension ThemeStage on ThemeClass {
+  int get currentStage {
+    if (timeOfLastRepetition == null) return 0; // Новая тема, ещё не изучали
+
+    if (nextRepetitionDate == null) return 0;
+    final nextDate = DateTime.tryParse(nextRepetitionDate!);
+    if (nextDate == null) return 0;
+
+    final now = DateTime.now();
+    final diffMinutes = nextDate.difference(now).inMinutes;
+
+    if (diffMinutes <= 180) return 1;           // до 3 часов
+    if (diffMinutes <= 420) return 2;           // 3–7 часов
+    if (diffMinutes <= 1440) return 3;          // 7–24 часов (1 день)
+    if (diffMinutes <= 4320) return 4;          // 1–3 дней
+    if (diffMinutes <= 8640) return 5;          // 3–6 дней
+    return 6; // Полностью усвоено (>6 дней)
+  }
+}
+
+extension ThemeStageColors on ThemeClass {
+  Color get stageColor {
+    switch (currentStage) {
+      case 0:
+        return Colors.blueAccent;
+      case 1:
+        return Colors.red;
+      case 2:
+        return Colors.deepOrange;
+      case 3:
+        return Colors.amber;
+      case 4:
+        return Colors.lightGreen;
+      case 5:
+        return Colors.green;
+      case 6:
+        return Colors.green.shade900;
+      default:
+        return Colors.blueAccent;
+    }
+  }
+}
+
+extension TimeFormatExtension on int {
+  String toCompactTime() {
+    if (this < 60) {
+      return '$this мин';
+    } else if (this < 1440) {
+      final hours = (this / 60).round();
+      return '$hours ч';
+    } else {
+      final days = (this / 1440).round();
+      return '$days д';
+    }
+  }
+}
+
+extension ThemePredictedInterval on ThemeClass {
+  int predictNextIntervalMinutes(int rating) {
+    final multipliers = {
+      1: 0.5,
+      2: 0.7,
+      3: 1.0,
+      4: 1.3,
+      5: 1.7,
+    };
+
+    bool isFirstRepetition = timeOfLastRepetition == null;
+    double currentEaseFactor = easeFactor;
+    double newEaseFactor = currentEaseFactor +
+        (0.1 - (5 - rating) * (0.08 + (5 - rating) * 0.02));
+
+    if (newEaseFactor < 1.3) newEaseFactor = 1.3;
+    if (newEaseFactor > 3.0) newEaseFactor = 3.0;
+
+    if (isFirstRepetition) {
+      switch (rating) {
+        case 1:
+          return 10;
+        case 2:
+          return 60;
+        case 3:
+          return 1440;
+        case 4:
+          return 2880;
+        case 5:
+          return 4320;
+        default:
+          return 1440;
+      }
+    } else {
+      int previousIntervalMinutes = 1440;
+
+      if (timeOfLastRepetition != null && nextRepetitionDate != null) {
+        final lastDate = DateTime.tryParse(timeOfLastRepetition!);
+        final nextDate = DateTime.tryParse(nextRepetitionDate!);
+        if (lastDate != null && nextDate != null) {
+          previousIntervalMinutes =
+              nextDate.difference(lastDate).inMinutes;
+          if (previousIntervalMinutes < 1) previousIntervalMinutes = 1;
+        }
+      }
+
+      final multiplier = multipliers[rating] ?? 1.0;
+      int predicted = (previousIntervalMinutes * newEaseFactor * multiplier).round();
+      return predicted < 1 ? 1 : predicted;
+    }
+  }
+}
+
+

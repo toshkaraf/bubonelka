@@ -1,8 +1,8 @@
+import 'package:bubonelka/rutes.dart';
 import 'package:flutter/material.dart';
 import 'package:bubonelka/utilites/database_helper.dart';
 import 'package:bubonelka/const_parameters.dart';
 import 'package:bubonelka/classes/phrase_card.dart';
-import 'package:bubonelka/rutes.dart';
 import 'package:bubonelka/pages/learning_page.dart';
 
 class FavoritePhrasesPage extends StatefulWidget {
@@ -28,8 +28,7 @@ class _FavoritePhrasesPageState extends State<FavoritePhrasesPage> {
         await dbHelper.getPhrasesForTheme(themeName: favoritePhrasesSet);
     final unique = {
       for (var phrase in phrases)
-        '${phrase.germanPhrases.join()}-${phrase.translationPhrases.join()}':
-            phrase
+        '${phrase.germanPhrases.join()}-${phrase.translationPhrases.join()}': phrase
     }.values.toList();
     setState(() => phraseCardsList = unique);
   }
@@ -67,7 +66,10 @@ class _FavoritePhrasesPageState extends State<FavoritePhrasesPage> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                const Text('Перевод', style: TextStyle(color: Colors.grey)),
+                const Text(
+                  'Перевод',
+                  style: TextStyle(color: Colors.grey), // ✅ тот же стиль
+                ),
                 Checkbox(
                   value: showTranslation,
                   onChanged: (val) => setState(() => showTranslation = val!),
@@ -83,80 +85,90 @@ class _FavoritePhrasesPageState extends State<FavoritePhrasesPage> {
                     itemCount: phraseCardsList.length,
                     separatorBuilder: (context, index) => const Divider(
                       thickness: 2,
-                      color: Colors.grey, // Сделал разделитель более заметным
+                      color: Colors.grey,
                     ),
                     itemBuilder: (context, index) {
                       final phrase = phraseCardsList[index];
-                      final germanText = phrase.germanPhrases.join('\n\n');
-                      final translationText =
-                          phrase.translationPhrases.join('\n\n');
+
+                      // Собираем пары фраза + перевод
+                      final pairs = <Widget>[];
+                      final germanList = phrase.germanPhrases;
+                      final translationList = phrase.translationPhrases;
+
+                      final count = germanList.length; // обычно 1-3
+
+                      for (int i = 0; i < count; i++) {
+                        if (germanList[i].isEmpty) continue;
+                        pairs.add(
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  germanList[i],
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                if (showTranslation && translationList.length > i)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 4.0),
+                                    child: Text(
+                                      translationList[i],
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
 
                       return ListTile(
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 12),
                         title: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              germanText,
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 16),
-                            ),
-                            if (showTranslation) ...[
-                              const SizedBox(height: 12),
-                              Text(
-                                translationText,
-                                style: const TextStyle(fontSize: 16),
-                              ),
-                            ],
-                          ],
+                          children: pairs,
                         ),
-                        trailing: Wrap(
-                          spacing: 12,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.menu_book,
-                                  color: Colors.blueAccent),
-                              tooltip: 'Грамматическая справка',
-                              onPressed: () {
-                                // Заглушка
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                        'Здесь будет вызов грамматической справки'),
-                                  ),
-                                );
-                              },
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete),
-                              onPressed: () => _deletePhraseCard(phrase),
-                            ),
-                          ],
+                        trailing: IconButton(
+                          icon: const Icon(Icons.delete),
+                          onPressed: () => _deletePhraseCard(phrase),
                         ),
                       );
                     },
                   ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: FloatingActionButton.extended(
-              heroTag: 'start_learning_hero_favorite',
-              onPressed: () {
-                Navigator.pushNamed(
-                  context,
-                  learningPageRoute,
-                  arguments: {
-                    'mode': LearningMode.repeatFavorites,
-                  },
-                );
-              },
-              label: const Text('Начать занятие'),
-              icon: const Icon(Icons.play_arrow),
-            ),
-          ),
         ],
       ),
+      floatingActionButton: phraseCardsList.isNotEmpty
+          ? Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: SizedBox(
+                width: 170,
+                child: FloatingActionButton.extended(
+                  heroTag: 'start_learning_hero_favorite',
+                  onPressed: () {
+                    Navigator.pushNamed(
+                      context,
+                      learningPageRoute,
+                      arguments: {
+                        'mode': LearningMode.repeatFavorites,
+                      },
+                    );
+                  },
+                  label: const Text('Повторить'),
+                  icon: const Icon(Icons.play_circle_fill),
+                ),
+              ),
+            )
+          : null,
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 

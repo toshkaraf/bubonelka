@@ -66,8 +66,10 @@ class DatabaseHelper {
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
-          await db.execute('ALTER TABLE $tableTheme ADD COLUMN next_repetition_date TEXT;');
-          await db.execute('ALTER TABLE $tableTheme ADD COLUMN ease_factor REAL DEFAULT 2.5;');
+          await db.execute(
+              'ALTER TABLE $tableTheme ADD COLUMN next_repetition_date TEXT;');
+          await db.execute(
+              'ALTER TABLE $tableTheme ADD COLUMN ease_factor REAL DEFAULT 2.5;');
         }
       },
     );
@@ -326,47 +328,85 @@ class DatabaseHelper {
 
   /// ✅ Новый метод: обновляет интервалы повторения после оценки темы
   Future<void> updateRepetitionSchedule(ThemeClass theme, int rating) async {
-    final db = await database;
+  final db = await database;
 
-    final baseIntervals = [1, 3, 7, 14, 30, 90];
-    final multipliers = {
-      1: 0.5,
-      2: 0.7,
-      3: 1.0,
-      4: 1.3,
-      5: 1.7,
-    };
+  bool isFirstRepetition = theme.timeOfLastRepetition == null;
 
-    int nextRepetitionStage =
-        (theme.numberOfRepetition + 1).clamp(1, baseIntervals.length);
-    int baseInterval = baseIntervals[nextRepetitionStage - 1];
-    double multiplier = multipliers[rating] ?? 1.0;
+  final multipliers = {
+    1: 0.5,
+    2: 0.7,
+    3: 1.0,
+    4: 1.3,
+    5: 1.7,
+  };
 
-    double newEaseFactor = theme.easeFactor +
-        (0.1 - (5 - rating) * (0.08 + (5 - rating) * 0.02));
-    if (newEaseFactor < 1.3) newEaseFactor = 1.3;
+  double newEaseFactor = theme.easeFactor +
+      (0.1 - (5 - rating) * (0.08 + (5 - rating) * 0.02));
+  if (newEaseFactor < 1.3) newEaseFactor = 1.3;
+  if (newEaseFactor > 3.0) newEaseFactor = 3.0;
 
-    int finalIntervalDays = (baseInterval * multiplier * newEaseFactor).round();
-    final nextDate = DateTime.now().add(Duration(days: finalIntervalDays));
+  int nextIntervalMinutes;
 
-    await db.update(
-      tableTheme,
-      {
-        'number_of_repetition': nextRepetitionStage,
-        'ease_factor': newEaseFactor,
-        'time_of_last_repetition': DateTime.now().toIso8601String(),
-        'next_repetition_date': nextDate.toIso8601String(),
-      },
-      where: 'id = ?',
-      whereArgs: [theme.id],
-    );
+  if (isFirstRepetition) {
+    // 🚀 Спец-логика для первого повторения (похожие пороги как в Anki)
+    switch (rating) {
+      case 1:
+        nextIntervalMinutes = 10; // 10 минут для ошибки
+        break;
+      case 2:
+        nextIntervalMinutes = 60; // 1 час
+        break;
+      case 3:
+        nextIntervalMinutes = 1440; // 1 день
+        break;
+      case 4:
+        nextIntervalMinutes = 2880; // 2 дня
+        break;
+      case 5:
+        nextIntervalMinutes = 4320; // 3 дня
+        break;
+      default:
+        nextIntervalMinutes = 1440; // по умолчанию 1 день
+    }
+  } else {
+    // 🔄 Обычная формула после первого повторения
+    int previousIntervalMinutes = 1440; // по умолчанию 1 день (безопасно)
 
-    logSuccess(
-      '✅ Интервал обновлён: "${theme.themeNameTranslation}", '
-      'следующее повторение через $finalIntervalDays дней '
-      '(Стадия: $nextRepetitionStage, EF: ${newEaseFactor.toStringAsFixed(2)})',
-    );
+    if (theme.timeOfLastRepetition != null && theme.nextRepetitionDate != null) {
+      final lastDate = DateTime.tryParse(theme.timeOfLastRepetition!);
+      final nextDate = DateTime.tryParse(theme.nextRepetitionDate!);
+      if (lastDate != null && nextDate != null) {
+        previousIntervalMinutes = nextDate.difference(lastDate).inMinutes;
+        if (previousIntervalMinutes < 1) previousIntervalMinutes = 1;
+      }
+    }
+
+    final multiplier = multipliers[rating] ?? 1.0;
+    nextIntervalMinutes =
+        (previousIntervalMinutes * newEaseFactor * multiplier).round();
+    if (nextIntervalMinutes < 1) nextIntervalMinutes = 1;
   }
+
+  final nextDate =
+      DateTime.now().add(Duration(minutes: nextIntervalMinutes));
+
+  await db.update(
+    tableTheme,
+    {
+      'ease_factor': newEaseFactor,
+      'time_of_last_repetition': DateTime.now().toIso8601String(),
+      'next_repetition_date': nextDate.toIso8601String(),
+    },
+    where: 'id = ?',
+    whereArgs: [theme.id],
+  );
+
+  logSuccess(
+    '✅ Интервал обновлён: "${theme.themeNameTranslation}", '
+    'следующее повторение через $nextIntervalMinutes мин '
+    '(EF: ${newEaseFactor.toStringAsFixed(2)})',
+  );
+}
 
   /// ✅ Новый метод: возвращает все темы, готовые к повторению
   Future<List<ThemeClass>> getDueThemes() async {
@@ -378,7 +418,11 @@ class DatabaseHelper {
       whereArgs: [now],
       orderBy: 'next_repetition_date ASC',
     );
-    return result.map((e) => ThemeClass.fromMap(e)).toList();
+    return result
+        .map((e) => ThemeClass.fromMap(e))
+        .where(
+            (theme) => theme.currentStage < 6) // 🔥 убираем полностью усвоенные
+        .toList();
   }
 
   void logInfo(String message) => print('📥 $message');

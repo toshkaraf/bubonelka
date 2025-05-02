@@ -1,4 +1,5 @@
 import 'package:bubonelka/pages/learning_page.dart';
+import 'package:bubonelka/pages/theme_page.dart';
 import 'package:flutter/material.dart';
 import 'package:bubonelka/utilites/database_helper.dart';
 import 'package:bubonelka/classes/settings_and_state.dart';
@@ -71,21 +72,23 @@ class _ChooseThemePageState extends State<ChooseThemePage> {
     return matchesQuery && matchesLevel;
   }
 
-List<ThemeClass> _getChildren(int parentId) {
-  return allThemes
-      .where((theme) =>
-          theme.parentId == parentId &&
-          theme.themeName != favoritePhrasesSet) // 🔥 Исключаем "Избранное"
-      .where(_matchesFilter)
-      .toList()
-    ..sort((a, b) => a.position.compareTo(b.position));
-}
+  List<ThemeClass> _getChildren(int parentId) {
+    return allThemes
+        .where((theme) =>
+            theme.parentId == parentId &&
+            theme.themeName != favoritePhrasesSet) // 🔥 Исключаем "Избранное"
+        .where(_matchesFilter)
+        .toList()
+      ..sort((a, b) => a.position.compareTo(b.position));
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Hero(tag: 'hero_new', child: Text(widget.parentTitle ?? 'Темы')),
+        title: Hero(
+            tag: 'hero_new',
+            child: Text(widget.parentTitle ?? 'Темы для изучения')),
         leading: widget.parentId != 0
             ? IconButton(
                 icon: const Icon(Icons.arrow_back),
@@ -194,21 +197,35 @@ List<ThemeClass> _getChildren(int parentId) {
         );
       } else {
         return ListTile(
-          leading: IconButton(
-            icon: const Icon(Icons.menu_book, color: Colors.blueAccent),
-            onPressed: () => _showGrammarDialog(theme.grammarFilePath),
+          leading: Container(
+            width: 48, // фиксируем ширину (примерно как у IconButton было)
+            alignment: Alignment.center,
+            child: theme.currentStage > 0
+                ? Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: theme.stageColor,
+                      shape: BoxShape.circle,
+                    ),
+                  )
+                : null,
           ),
-          title: Text(theme.themeName,
-              style: const TextStyle(fontWeight: FontWeight.bold)),
+          title: Text(
+            theme.themeName,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
           subtitle: showTranslations
-              ? Text(theme.themeNameTranslation,
-                  style: const TextStyle(color: Colors.grey))
+              ? Text(
+                  theme.themeNameTranslation,
+                  style: const TextStyle(color: Colors.grey),
+                )
               : null,
           trailing: IconButton(
             icon: const Icon(Icons.play_arrow, color: Colors.green),
             onPressed: () => _startSingleThemeLearning(theme),
           ),
-          onTap: () => _showGrammarDialog(theme.grammarFilePath),
+          onTap: () => _openThemePage(theme),
         );
       }
     }).toList();
@@ -239,6 +256,15 @@ List<ThemeClass> _getChildren(int parentId) {
         'theme': theme,
         'mode': LearningMode.studyThemes,
       },
+    );
+  }
+
+  void _openThemePage(ThemeClass theme) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ThemePage(theme: theme),
+      ),
     );
   }
 }
