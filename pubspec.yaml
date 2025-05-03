@@ -76,6 +76,9 @@ flutter:
     - assets/csv/wortfamilien/
     - assets/csv/wortfamilien/geben/
     - assets/csv/wortfamilien/nehmen/
+    - assets/csv/comparativ_superlativ/
+    - assets/csv/modalverben/
+    - assets/csv/passiv/
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see

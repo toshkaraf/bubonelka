@@ -36,41 +36,41 @@ class _ThemePageState extends State<ThemePage> {
       appBar: AppBar(
         title: Text(widget.theme.themeName),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Сбросить статистику',
-            onPressed: () async {
-              final confirmed = await showDialog<bool>(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('Подтверждение'),
-                  content: const Text(
-                    'Вы уверены, что хотите сбросить статистику по этой теме? '
-                    'Это вернёт её в исходное состояние.',
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: const Text('Отмена'),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      child: const Text('Сбросить'),
-                    ),
-                  ],
-                ),
-              );
+          // IconButton(
+          //   icon: const Icon(Icons.refresh),
+          //   tooltip: 'Сбросить статистику',
+          //   onPressed: () async {
+          //     final confirmed = await showDialog<bool>(
+          //       context: context,
+          //       builder: (context) => AlertDialog(
+          //         title: const Text('Подтверждение'),
+          //         content: const Text(
+          //           'Вы уверены, что хотите сбросить статистику по этой теме? '
+          //           'Это вернёт её в исходное состояние.',
+          //         ),
+          //         actions: [
+          //           TextButton(
+          //             onPressed: () => Navigator.pop(context, false),
+          //             child: const Text('Отмена'),
+          //           ),
+          //           TextButton(
+          //             onPressed: () => Navigator.pop(context, true),
+          //             child: const Text('Сбросить'),
+          //           ),
+          //         ],
+          //       ),
+          //     );
 
-              if (confirmed == true) {
-                await dbHelper.resetThemeStatistics(widget.theme);
-                if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Статистика по теме сброшена')),
-                );
-                setState(() {}); // обновим экран, если нужно
-              }
-            },
-          ),
+          //     if (confirmed == true) {
+          //       await dbHelper.resetThemeStatistics(widget.theme);
+          //       if (!mounted) return;
+          //       ScaffoldMessenger.of(context).showSnackBar(
+          //         const SnackBar(content: Text('Статистика по теме сброшена')),
+          //       );
+          //       setState(() {}); // обновим экран, если нужно
+          //     }
+          //   },
+          // ),
           IconButton(
             icon: const Icon(Icons.delete),
             tooltip: 'Удалить тему',

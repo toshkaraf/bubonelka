@@ -1,4 +1,3 @@
-import 'package:bubonelka/const_parameters.dart';
 import 'package:flutter/material.dart';
 
 class ThemeClass {
@@ -144,15 +143,13 @@ extension ThemeStage on ThemeClass {
       return 0;
     }
 
-    // Ищем подходящую стадию по нашим границам
-    for (int i = 0; i < reviewStagesMinutes.length; i++) {
-      if (diffMinutes <= reviewStagesMinutes[i]) {
-        return i + 1; // Стадии начинаются с 1
-      }
-    }
+    if (diffMinutes <= 1440) return 1; // до 1 дня
+    if (diffMinutes <= 4320) return 2; // 1–3 дней
+    if (diffMinutes <= 14400) return 3; // 3–10 дней
+    if (diffMinutes <= 43200) return 4; // 10–30 дней
+    if (diffMinutes <= 129600) return 5; // 30–90 дней
 
-    // Если ничего не нашли (что маловероятно), возвращаем последнюю стадию
-    return reviewStagesMinutes.length;
+    return 6; // Полностью усвоено (>90 дней)
   }
 
   /// ✅ Показывает, полностью ли тема усвоена

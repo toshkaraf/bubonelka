@@ -1,5 +1,10 @@
 Корневой каталог; Root
-Повелительное наклонение;Imperativ;"imperativ.csv";A;1
-Cоюзы простые; Konjunktionen;"konjunktionen/index.csv";A;200
-Cоюзы составные; Verbundene Konjunktionen;verbundene_konjunktionen/index.csv;B;300
-Семьи слов; Wortfamilien;wortfamilien/index.csv;AB;150
+Повелительное наклонение;Imperativ;"imperativ.csv";A;50
+Время и даты;Uhrzeit und Daten;"uhrzeit_daten.csv";A;100
+Отделяемые приставки;Trennbare Präfixe;"trennbare_präfixe.csv";A;150
+Сравнительная и превосходная степерь; Comparaptiv und Superlativ;"comparativ_superlativ/index.csv";AB;200
+Модальные глаголы;Modalverben;"modalverben/index.csv";AB;500
+Пассив;Passiv;"passiv/index.csv";AB;1000
+Cоюзы простые; Konjunktionen;"konjunktionen/index.csv";A;2000
+Cоюзы составные; Verbundene Konjunktionen;verbundene_konjunktionen/index.csv;B;3000
+Семьи слов; Wortfamilien;wortfamilien/index.csv;AB;4000

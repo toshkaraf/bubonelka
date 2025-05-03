@@ -5,7 +5,6 @@ import 'package:bubonelka/pages/learning_page.dart';
 import 'package:bubonelka/pages/loading_screen.dart';
 import 'package:bubonelka/pages/repeat_recomended_page.dart';
 import 'package:bubonelka/pages/start_page.dart';
-import 'package:bubonelka/pages/theme_list_page.dart';
 import 'package:bubonelka/rutes.dart';
 import 'package:bubonelka/utilites/database_helper.dart';
 import 'package:flutter/material.dart';

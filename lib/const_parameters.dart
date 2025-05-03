@@ -35,7 +35,9 @@ const double dividerWidth = 8.0;
 // Заглушки для PhraseCard
 final PhraseCard emptyPhraseCard = PhraseCard(
   themeName: 'EmptyCard',
-  germanPhrases: ['Es gibt keine Phrasen mehr zu lernen! Wählen Sie neue Themen.'],
+  germanPhrases: [
+    'Es gibt keine Phrasen mehr zu lernen! Wählen Sie neue Themen.'
+  ],
   translationPhrases: ['Фраз для изучения больше нет! Выбери новые темы.'],
   themeId: -1,
 );
@@ -54,3 +56,13 @@ const double speechRateTranslation = 0.6;
 // Названия страниц
 const String editPhrasePageName = 'Редактируем фразы';
 const String createPhrasePageName = 'Добавляем фразы';
+
+/// Интервалы стадий повторения в минутах
+const List<int> reviewStagesMinutes = [
+  1440, // Стадия 1: до 1 дня
+  4320, // Стадия 2: 1–3 дней
+  14400, // Стадия 3: 3–10 дней
+  43200, // Стадия 4: 10–30 дней
+  129600, // Стадия 5: 30–90 дней
+  9999999, // Стадия 6: >90 дней (усвоено)
+];

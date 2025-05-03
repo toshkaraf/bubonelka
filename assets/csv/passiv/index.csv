@@ -1,0 +1,6 @@
+Пассив;Passiv;
+Пассив Weren; Passiv Weden;passiv/passiv_werden.csv;A;10
+Пассив: werden/man; Passiv: werden/man;passiv/passiv_man.csv;A;20
+Пассив: модальные глаголы; Passiv: modal Verben;passiv/passiv_modal.csv;B;40
+Пассив в придаточных предложениях; Passiv in untergeordneten Klauseln;passiv/passiv_untergeordnete.csv;B;50
+Альтернативы пассиву с модальными глаголами; Alternativen zum passiven mit modalen Verben;passiv/passiv_alternativ.csv;B;60
