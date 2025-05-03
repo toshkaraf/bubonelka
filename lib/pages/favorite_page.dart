@@ -68,7 +68,7 @@ class _FavoritePhrasesPageState extends State<FavoritePhrasesPage> {
               children: [
                 const Text(
                   'Перевод',
-                  style: TextStyle(color: Colors.grey), // ✅ тот же стиль
+                  style: TextStyle(color: Colors.grey),
                 ),
                 Checkbox(
                   value: showTranslation,
@@ -80,7 +80,8 @@ class _FavoritePhrasesPageState extends State<FavoritePhrasesPage> {
           Expanded(
             child: phraseCardsList.isEmpty
                 ? const Center(
-                    child: Text('Список пуст', style: TextStyle(fontSize: 18)))
+                    child: Text('Список пуст', style: TextStyle(fontSize: 18)),
+                  )
                 : ListView.separated(
                     itemCount: phraseCardsList.length,
                     separatorBuilder: (context, index) => const Divider(
@@ -90,12 +91,11 @@ class _FavoritePhrasesPageState extends State<FavoritePhrasesPage> {
                     itemBuilder: (context, index) {
                       final phrase = phraseCardsList[index];
 
-                      // Собираем пары фраза + перевод
                       final pairs = <Widget>[];
                       final germanList = phrase.germanPhrases;
                       final translationList = phrase.translationPhrases;
 
-                      final count = germanList.length; // обычно 1-3
+                      final count = germanList.length;
 
                       for (int i = 0; i < count; i++) {
                         if (germanList[i].isEmpty) continue;
@@ -129,16 +129,38 @@ class _FavoritePhrasesPageState extends State<FavoritePhrasesPage> {
                         );
                       }
 
-                      return ListTile(
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 12),
-                        title: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: pairs,
+                      return Dismissible(
+                        key: ValueKey(
+                            '${phrase.germanPhrases.join()}-${phrase.translationPhrases.join()}'),
+                        background: Container(
+                          color: Colors.red,
+                          alignment: Alignment.centerLeft,
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: const Icon(Icons.delete, color: Colors.white),
                         ),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete),
-                          onPressed: () => _deletePhraseCard(phrase),
+                        secondaryBackground: Container(
+                          color: Colors.red,
+                          alignment: Alignment.centerRight,
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child:
+                              const Icon(Icons.delete, color: Colors.white),
+                        ),
+                        direction: DismissDirection.horizontal,
+                        onDismissed: (direction) async {
+                          await _deletePhraseCard(phrase);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text(
+                                    'Фраза удалена из избранного')),
+                          );
+                        },
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
+                          title: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: pairs,
+                          ),
                         ),
                       );
                     },
@@ -189,7 +211,8 @@ class _FavoritePhrasesPageState extends State<FavoritePhrasesPage> {
               Navigator.pop(ctx);
               await _clearFavorites();
             },
-            child: const Text('Очистить', style: TextStyle(color: Colors.red)),
+            child: const Text('Очистить',
+                style: TextStyle(color: Colors.red)),
           ),
         ],
       ),

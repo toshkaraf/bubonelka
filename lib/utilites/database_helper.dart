@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:async';
 import 'package:bubonelka/const_parameters.dart';
 import 'package:csv/csv.dart';
@@ -61,6 +60,7 @@ class DatabaseHelper {
             is_active INTEGER,
             is_deleted INTEGER,
             theme_id INTEGER,
+            hint TEXT,
             FOREIGN KEY (theme_id) REFERENCES $tableTheme(id) ON DELETE CASCADE
           );
         ''');
@@ -180,6 +180,7 @@ class DatabaseHelper {
         germanPhrases: parts.sublist(0, 3),
         translationPhrases: parts.sublist(3, 6),
         themeId: theme.id!,
+        hint: parts.length > 6 ? parts[6] : '',
       );
 
       batch.insert(tablePhraseCard, phraseCard.toMap());

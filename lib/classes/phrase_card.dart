@@ -6,6 +6,7 @@ class PhraseCard {
   final bool isActive;
   final bool isDeleted;
   final int themeId;
+  final String hint; // ✅ новое поле
 
   PhraseCard({
     this.id,
@@ -15,6 +16,7 @@ class PhraseCard {
     this.isActive = true,
     this.isDeleted = false,
     required this.themeId,
+    this.hint = '', // ✅ по умолчанию пусто
   });
 
   factory PhraseCard.fromMap(Map<String, dynamic> map) {
@@ -34,6 +36,7 @@ class PhraseCard {
       isActive: map['is_active'] == 1,
       isDeleted: map['is_deleted'] == 1,
       themeId: map['theme_id'] ?? 0,
+      hint: map['hint'] ?? '', // ✅ новое поле
     );
   }
 
@@ -44,12 +47,16 @@ class PhraseCard {
       'german_phrase1': germanPhrases.isNotEmpty ? germanPhrases[0] : '',
       'german_phrase2': germanPhrases.length > 1 ? germanPhrases[1] : '',
       'german_phrase3': germanPhrases.length > 2 ? germanPhrases[2] : '',
-      'translation_phrase1': translationPhrases.isNotEmpty ? translationPhrases[0] : '',
-      'translation_phrase2': translationPhrases.length > 1 ? translationPhrases[1] : '',
-      'translation_phrase3': translationPhrases.length > 2 ? translationPhrases[2] : '',
+      'translation_phrase1':
+          translationPhrases.isNotEmpty ? translationPhrases[0] : '',
+      'translation_phrase2':
+          translationPhrases.length > 1 ? translationPhrases[1] : '',
+      'translation_phrase3':
+          translationPhrases.length > 2 ? translationPhrases[2] : '',
       'is_active': isActive ? 1 : 0,
       'is_deleted': isDeleted ? 1 : 0,
       'theme_id': themeId,
+      'hint': hint, // ✅ новое поле
     };
   }
 }
